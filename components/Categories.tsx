@@ -1,0 +1,49 @@
+"use client";
+
+import { useState } from "react";
+
+export default function Categories({ categories, setCategories }: any) {
+  const [name, setName] = useState("");
+
+  const add = () => {
+    if (!name) return;
+    setCategories([...categories, name]);
+    setName("");
+  };
+
+  return (
+    <div>
+      <h2 className="text-3xl mb-4">Categories</h2>
+
+      <div className="flex gap-2">
+        <input
+          className="input"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="New category"
+        />
+        <button onClick={add} className="btn-primary">Add</button>
+      </div>
+
+      <ul className="mt-6 space-y-2">
+        {categories.map((c: string) => (
+          <li key={c} className="bg-white/10 p-3 rounded-xl">{c}</li>
+        ))}
+      </ul>
+
+      <style jsx>{`
+        .input {
+          padding: 10px;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.2);
+        }
+        .btn-primary {
+          padding: 10px 16px;
+          border-radius: 12px;
+          background: linear-gradient(to right, #7c3aed, #4f46e5);
+        }
+      `}</style>
+    </div>
+  );
+}
