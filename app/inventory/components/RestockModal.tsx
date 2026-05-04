@@ -1,10 +1,20 @@
+import { Product } from "../../../types";
+
+type Props = {
+  restockItem: Product | null;
+  restockAmount: number;
+  setRestockAmount: (amount: number) => void;
+  setRestockItem: (item: Product | null) => void;
+  saveRestock: () => void;
+};
+
 export default function RestockModal({
   restockItem,
   restockAmount,
   setRestockAmount,
   setRestockItem,
   saveRestock,
-}: any) {
+}: Props) {
   if (!restockItem) return null;
 
   return (

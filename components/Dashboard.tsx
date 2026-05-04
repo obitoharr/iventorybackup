@@ -1,4 +1,5 @@
-﻿import { Product, Sale } from "../types";
+﻿//app/components/Dashboard.tsx
+import { Product, Sale } from "../types";
 import StatsCards from "./StatsCards";
 
 type DashboardProps = {

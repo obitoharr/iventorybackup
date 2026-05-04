@@ -1,3 +1,4 @@
+//app/inventory/page.tsx
 import { Product } from "../../types";
 import { ShoppingCart, Plus, Edit, Trash2 } from "lucide-react";
 

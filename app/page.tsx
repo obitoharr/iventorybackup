@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import Inventory from "./inventory/Inventory";
 import Dashboard from "../components/Dashboard";
@@ -8,10 +8,28 @@ import Categories from "../components/Categories";
 import SalesPage from "./sales/page";
 import { useInventory } from "../hooks/useInventory";
 
+// ✅ NEW (auth)
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+
 export default function Page() {
   const inventory = useInventory();
   const [page, setPage] = useState("dashboard");
   const [dark, setDark] = useState(true);
+
+  const router = useRouter();
+
+  // ✅ PROTECT PAGE (DO NOT REMOVE)
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        router.push("/login");
+      }
+    };
+
+    checkUser();
+  }, [router]);
 
   const theme = dark
     ? "bg-slate-950 text-slate-100"
@@ -27,7 +45,7 @@ export default function Page() {
         setDark={setDark}
       />
 
-      <div className="flex-1 flex-shrink-0 p-4 sm:p-6">
+      <div className="flex-1 p-4 sm:p-6">
 
         {page === "dashboard" && (
           <Dashboard
@@ -47,7 +65,7 @@ export default function Page() {
         {page === "categories" && (
           <Categories
             categories={inventory.categories}
-            addCategory={inventory.addCategory} // ✅ FIXED
+            addCategory={inventory.addCategory}
           />
         )}
 

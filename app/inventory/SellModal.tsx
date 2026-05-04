@@ -1,3 +1,4 @@
+//app/inventory/SellModal.tsx
 import { Product } from "../../types";
 
 type Props = {

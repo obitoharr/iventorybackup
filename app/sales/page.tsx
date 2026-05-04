@@ -1,3 +1,4 @@
+//app/sales/page.tsx
 "use client";
 
 import { useInventory } from "../../hooks/useInventory";

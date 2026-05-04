@@ -1,77 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Product, Sale, Category, ProductSchema, SaleSchema, CategorySchema, LoadingState } from "../types";
+import { supabase } from "@/lib/supabase";
+import { Product, Sale, Category, LoadingState } from "../types";
 
-interface InventoryHookReturn {
-  // State
-  products: Product[];
-  categories: Category[];
-  sales: Sale[];
-  loading: LoadingState;
-
-  // Product operations
-  addProduct: (product: Omit<Product, 'id'>) => Promise<boolean>;
-  updateProduct: (id: string, updates: Partial<Product>) => Promise<boolean>;
-  deleteProduct: (id: string) => Promise<boolean>;
-  restockProduct: (id: string, amount: number) => Promise<boolean>;
-
-  // Sale operations
-  sellProduct: (productId: string, quantity: number) => Promise<boolean>;
-
-  // Category operations
-  addCategory: (category: Category) => Promise<boolean>;
-  updateCategories: (categories: Category[]) => void;
-
-  // Utility
-  getProductById: (id: string) => Product | undefined;
-  getLowStockProducts: () => Product[];
-  getOutOfStockProducts: () => Product[];
-
-  // ✅ REQUIRED BY Inventory.tsx
-  sellItem: Product | null;
-  sellQty: number;
-  setSellQty: (qty: number) => void;
-  setSellItem: (item: Product | null) => void;
-  openSell: (product: Product) => void;
-  confirmSell: () => void;
-}
-
-// Storage keys
-const STORAGE_KEYS = {
-  PRODUCTS: 'inventory_products',
-  CATEGORIES: 'inventory_categories',
-  SALES: 'inventory_sales',
-} as const;
-
-// Default data
-const DEFAULT_PRODUCTS: Product[] = [
-  {
-    id: crypto.randomUUID(),
-    name: "Laptop",
-    category: "Electronics",
-    price: 1299,
-    stock: 18,
-  },
-  {
-    id: crypto.randomUUID(),
-    name: "Coffee Beans",
-    category: "Food",
-    price: 15,
-    stock: 42,
-  },
-  {
-    id: crypto.randomUUID(),
-    name: "Handbag",
-    category: "Fashion",
-    price: 249,
-    stock: 10,
-  },
-];
-
-const DEFAULT_CATEGORIES: Category[] = ["Electronics", "Food", "Fashion"];
-
-export function useInventory(): InventoryHookReturn {
+export function useInventory() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -80,163 +13,142 @@ export function useInventory(): InventoryHookReturn {
     error: null,
   });
 
-  // ✅ Sell modal state (kept)
   const [sellItem, setSellItem] = useState<Product | null>(null);
   const [sellQty, setSellQty] = useState(1);
 
-  // Safe localStorage
-  const safeLocalStorage = {
-    get: <T>(key: string, fallback: T): T => {
-      try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : fallback;
-      } catch {
-        return fallback;
-      }
-    },
-    set: (key: string, value: any): boolean => {
-      try {
-        localStorage.setItem(key, JSON.stringify(value));
-        return true;
-      } catch {
-        return false;
-      }
-    },
-  };
+  const fetchData = useCallback(async () => {
+    setLoading({ isLoading: true, error: null });
 
-  // Load data
-  useEffect(() => {
-    try {
-      setLoading({ isLoading: true, error: null });
+    const { data: products } = await supabase.from("products").select("*");
+    const { data: sales } = await supabase.from("sales").select("*");
+    const { data: categories } = await supabase.from("categories").select("*");
 
-      const storedProducts = safeLocalStorage.get(STORAGE_KEYS.PRODUCTS, DEFAULT_PRODUCTS);
-      const storedCategories = safeLocalStorage.get(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
-      const storedSales = safeLocalStorage.get(STORAGE_KEYS.SALES, []);
+    setProducts(products || []);
+    setSales(sales || []);
+    setCategories(categories?.map((c) => c.name) || []);
 
-      setProducts(storedProducts);
-      setCategories(storedCategories);
-      setSales(storedSales);
-
-      setLoading({ isLoading: false, error: null });
-    } catch {
-      setProducts(DEFAULT_PRODUCTS);
-      setCategories(DEFAULT_CATEGORIES);
-      setSales([]);
-      setLoading({ isLoading: false, error: "Failed to load" });
-    }
+    setLoading({ isLoading: false, error: null });
   }, []);
-
-  // Persist
-  useEffect(() => {
-    if (!loading.isLoading) {
-      safeLocalStorage.set(STORAGE_KEYS.PRODUCTS, products);
-    }
-  }, [products, loading.isLoading]);
 
   useEffect(() => {
-    if (!loading.isLoading) {
-      safeLocalStorage.set(STORAGE_KEYS.CATEGORIES, categories);
-    }
-  }, [categories, loading.isLoading]);
+    fetchData();
+  }, [fetchData]);
 
-  useEffect(() => {
-    if (!loading.isLoading) {
-      safeLocalStorage.set(STORAGE_KEYS.SALES, sales);
-    }
-  }, [sales, loading.isLoading]);
+  // ✅ FIXED TYPES
+  const addProduct = useCallback(async (product: Omit<Product, "id">): Promise<boolean> => {
+    const user = (await supabase.auth.getUser()).data.user;
 
-  // Product ops
-  const addProduct = useCallback(async (productData: Omit<Product, 'id'>) => {
-    const newProduct = { ...productData, id: crypto.randomUUID() };
-    setProducts(prev => [newProduct, ...prev]);
-    return true;
-  }, []);
+    const { error } = await supabase.from("products").insert({
+      ...product,
+      user_id: user?.id,
+    });
 
-  const updateProduct = useCallback(async (id: string, updates: Partial<Product>) => {
-    setProducts(prev =>
-      prev.map(p => (p.id === id ? { ...p, ...updates } : p))
-    );
-    return true;
-  }, []);
+    if (!error) await fetchData();
+    return !error;
+  }, [fetchData]);
 
-  const deleteProduct = useCallback(async (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-    return true;
-  }, []);
+  // ✅ FIXED TYPES
+  const updateProduct = useCallback(async (id: string, updates: Partial<Product>): Promise<boolean> => {
+    const { error } = await supabase
+      .from("products")
+      .update(updates)
+      .eq("id", id);
 
-  const restockProduct = useCallback(async (id: string, amount: number) => {
-    setProducts(prev =>
-      prev.map(p =>
-        p.id === id ? { ...p, stock: p.stock + amount } : p
-      )
-    );
-    return true;
-  }, []);
+    if (!error) await fetchData();
+    return !error;
+  }, [fetchData]);
 
-  // ✅ SELL PRODUCT (must come BEFORE confirmSell)
+  // ✅ FIXED TYPES
+  const deleteProduct = useCallback(async (id: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", id);
+
+    if (!error) await fetchData();
+    return !error;
+  }, [fetchData]);
+
+  // ✅ FIXED TYPES
+  const restockProduct = useCallback(async (id: string, amount: number): Promise<boolean> => {
+    const product = products.find((p) => p.id === id);
+    if (!product) return false;
+
+    const { error } = await supabase
+      .from("products")
+      .update({ stock: product.stock + amount })
+      .eq("id", id);
+
+    if (!error) await fetchData();
+    return !error;
+  }, [products, fetchData]);
+
+  // ✅ FIXED TYPES
   const sellProduct = useCallback(async (productId: string, quantity: number): Promise<boolean> => {
-    try {
-      const product = products.find(p => p.id === productId);
-      if (!product || quantity <= 0 || quantity > product.stock) return false;
+    const product = products.find((p) => p.id === productId);
+    if (!product) return false;
 
-      await updateProduct(productId, { stock: product.stock - quantity });
+    const user = (await supabase.auth.getUser()).data.user;
 
-      const newSale = {
-        id: crypto.randomUUID(),
-        productId,
-        productName: product.name,
-        quantity,
-        total: quantity * product.price,
-        date: new Date().toISOString(),
-      };
+    const { error: updateError } = await supabase
+      .from("products")
+      .update({ stock: product.stock - quantity })
+      .eq("id", productId);
 
-      setSales(prev => [newSale, ...prev]);
+    const { error: saleError } = await supabase.from("sales").insert({
+      product_id: productId,
+      product_name: product.name,
+      quantity,
+      total: quantity * product.price,
+      user_id: user?.id,
+    });
+
+    if (!updateError && !saleError) {
+      await fetchData();
       return true;
-    } catch (error) {
-      console.error("Error selling product:", error);
-      return false;
     }
-  }, [products, updateProduct]);
 
-  // ✅ OPEN SELL
-  const openSell = useCallback((product: Product) => {
+    return false;
+  }, [products, fetchData]);
+
+  const openSell = (product: Product) => {
     setSellItem(product);
     setSellQty(1);
-  }, []);
+  };
 
-  // ✅ CONFIRM SELL (NOW CORRECT ORDER)
-  const confirmSell = useCallback(async () => {
+  const confirmSell = async () => {
     if (!sellItem) return;
 
     await sellProduct(sellItem.id, sellQty);
 
     setSellItem(null);
     setSellQty(1);
-  }, [sellItem, sellQty, sellProduct]);
+  };
 
-  // Category ops
-  const addCategory = useCallback(async (category: Category) => {
-    if (categories.includes(category)) return false;
-    setCategories(prev => [...prev, category]);
-    return true;
-  }, [categories]);
+  const addCategory = useCallback(async (name: Category): Promise<boolean> => {
+    const user = (await supabase.auth.getUser()).data.user;
 
-  const updateCategories = useCallback((newCategories: Category[]) => {
+    const { error } = await supabase.from("categories").insert({
+      name,
+      user_id: user?.id,
+    });
+
+    if (!error) await fetchData();
+    return !error;
+  }, [fetchData]);
+
+  const updateCategories = (newCategories: Category[]) => {
     setCategories(newCategories);
-  }, []);
+  };
 
-  // Utilities
-  const getProductById = useCallback((id: string) => {
-    return products.find(p => p.id === id);
-  }, [products]);
+  const getProductById = (id: string) =>
+    products.find((p) => p.id === id);
 
-  const getLowStockProducts = useCallback(() => {
-    return products.filter(p => p.stock > 0 && p.stock < 10);
-  }, [products]);
+  const getLowStockProducts = () =>
+    products.filter((p) => p.stock > 0 && p.stock < 10);
 
-  const getOutOfStockProducts = useCallback(() => {
-    return products.filter(p => p.stock === 0);
-  }, [products]);
+  const getOutOfStockProducts = () =>
+    products.filter((p) => p.stock === 0);
 
   return {
     products,
@@ -248,7 +160,6 @@ export function useInventory(): InventoryHookReturn {
     updateProduct,
     deleteProduct,
     restockProduct,
-
     sellProduct,
 
     addCategory,
@@ -258,7 +169,6 @@ export function useInventory(): InventoryHookReturn {
     getLowStockProducts,
     getOutOfStockProducts,
 
-    // ✅ REQUIRED
     sellItem,
     sellQty,
     setSellQty,

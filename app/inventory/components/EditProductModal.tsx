@@ -1,8 +1,16 @@
+import { Product } from "../../../types";
+
+type Props = {
+  editItem: Product | null;
+  setEditItem: (item: Product | null) => void;
+  saveEdit: (product: Product) => void;
+};
+
 export default function EditProductModal({
   editItem,
   setEditItem,
   saveEdit,
-}: any) {
+}: Props) {
   if (!editItem) return null;
 
   return (

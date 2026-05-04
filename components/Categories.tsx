@@ -1,3 +1,4 @@
+//app/components/Categories.tsx
 "use client";
 
 import { useState } from "react";

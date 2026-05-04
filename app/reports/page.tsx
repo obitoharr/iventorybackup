@@ -1,163 +1,249 @@
 "use client";
 
-import { useMemo } from "react";
-import { useInventory } from "../../hooks/useInventory";
-import { Download, DollarSign, ShoppingBag, TrendingUp, Clock, Star } from "lucide-react";
-
-function formatCsvRow(row: string[]) {
-  return row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(",");
-}
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { Sale } from "../../types";
+import * as XLSX from "xlsx";
+import {
+  Download,
+  DollarSign,
+  ShoppingBag,
+  TrendingUp,
+  Clock,
+  Star,
+} from "lucide-react";
 
 export default function ReportsPage() {
-  const { sales } = useInventory();
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [filter, setFilter] = useState<"7d" | "30d" | "all">("all");
 
+  // Load sales from Supabase
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase.from("sales").select("*");
+      setSales(data || []);
+    };
+
+    load();
+  }, []);
+
+  // Date filtering
+  const filteredSales = useMemo(() => {
+    const now = new Date();
+
+    return sales.filter((sale) => {
+      if (filter === "all") return true;
+
+      const diffDays =
+        (now.getTime() - new Date(sale.date).getTime()) /
+        (1000 * 60 * 60 * 24);
+
+      if (filter === "7d") return diffDays <= 7;
+      if (filter === "30d") return diffDays <= 30;
+
+      return true;
+    });
+  }, [sales, filter]);
+
+  // Revenue
   const revenue = useMemo(
-    () => sales.reduce((sum, sale) => sum + sale.total, 0),
-    [sales]
+    () => filteredSales.reduce((sum, s) => sum + Number(s.total || 0), 0),
+    [filteredSales]
   );
 
-  const orders = sales.length;
+  const orders = filteredSales.length;
+
   const average = orders ? (revenue / orders).toFixed(2) : "0.00";
-  const cashFlow = revenue;
-  const latestSale = sales[0]?.date
-    ? new Date(sales[0].date).toLocaleString()
+
+  const latestSale = filteredSales[0]?.date
+    ? new Date(filteredSales[0].date).toLocaleString()
     : "No sales yet";
 
-  const productTotals = useMemo(() => {
-    const totals: Record<string, number> = {};
-    sales.forEach((sale) => {
-      totals[sale.productName] = (totals[sale.productName] || 0) + sale.quantity;
+  // Top product
+  const topProduct = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    filteredSales.forEach((s) => {
+      map[s.productName] =
+        (map[s.productName] || 0) + s.quantity;
     });
-    return Object.entries(totals)
-      .sort(([, a], [, b]) => b - a)
-      .map(([product]) => product);
-  }, [sales]);
 
-  const topProduct = productTotals[0] || "No sales yet";
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || "No sales";
+  }, [filteredSales]);
 
-  const downloadCsv = () => {
-    const header = ["Sale ID", "Product", "Quantity", "Total", "Date"];
-    const rows = sales.map((sale) => [
-      sale.id,
-      sale.productName,
-      sale.quantity.toString(),
-      sale.total.toFixed(2),
-      new Date(sale.date).toLocaleString(),
-    ]);
+  // Per user
+  const perUser = useMemo(() => {
+    const map: Record<string, number> = {};
 
-    const csv = [header, ...rows].map(formatCsvRow).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "sales-report.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    filteredSales.forEach((s: any) => {
+      const user = s.user_id || "unknown";
+      map[user] = (map[user] || 0) + Number(s.total || 0);
+    });
+
+    return map;
+  }, [filteredSales]);
+
+  // Per product
+  const perProduct = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    filteredSales.forEach((s) => {
+      map[s.productName] =
+        (map[s.productName] || 0) + s.quantity;
+    });
+
+    return map;
+  }, [filteredSales]);
+
+  // ✅ EXCEL EXPORT
+  const downloadExcel = () => {
+    const data = filteredSales.map((sale) => ({
+      "Sale ID": sale.id,
+      Product: sale.productName,
+      Quantity: sale.quantity,
+      Total: Number(sale.total || 0),
+      Date: new Date(sale.date).toLocaleString(),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sales Report");
+
+    XLSX.writeFile(workbook, "sales-report.xlsx");
   };
 
   return (
     <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8 text-slate-100">
       <div className="mx-auto max-w-7xl">
+
+        {/* HEADER */}
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h2 className="text-3xl font-semibold">Reports</h2>
-            <p className="text-slate-400 mt-2 max-w-2xl">
-              Get a clear view of your revenue, order trends, and recent sales history.
-            </p>
+
+            {/* FILTER BUTTONS */}
+            <div className="flex gap-2 mt-3">
+              <button onClick={() => setFilter("7d")} className="px-2 py-1 text-xs bg-slate-800 rounded">
+                7D
+              </button>
+              <button onClick={() => setFilter("30d")} className="px-2 py-1 text-xs bg-slate-800 rounded">
+                30D
+              </button>
+              <button onClick={() => setFilter("all")} className="px-2 py-1 text-xs bg-slate-800 rounded">
+                ALL
+              </button>
+            </div>
           </div>
 
+          {/* EXPORT BUTTON */}
           <button
-            onClick={downloadCsv}
-            className="rounded-2xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 flex items-center gap-2"
+            onClick={downloadExcel}
+            className="rounded-2xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 flex items-center gap-2"
           >
             <Download size={20} />
-            Download CSV
+            Download Excel
           </button>
         </div>
 
+        {/* STATS */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-          <div className="rounded-3xl bg-slate-900 p-6 shadow-lg shadow-black/20 border border-slate-800 flex items-center gap-4">
-            <DollarSign size={32} className="text-green-400" />
+
+          <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+            <DollarSign className="text-green-400" />
             <div>
-              <p className="text-sm text-slate-400">Total Revenue</p>
-              <p className="text-3xl font-bold text-white">${revenue}</p>
+              <p>Total Revenue</p>
+              <p className="text-2xl">${revenue}</p>
             </div>
           </div>
-          <div className="rounded-3xl bg-slate-900 p-6 shadow-lg shadow-black/20 border border-slate-800 flex items-center gap-4">
-            <ShoppingBag size={32} className="text-blue-400" />
+
+          <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+            <ShoppingBag className="text-blue-400" />
             <div>
-              <p className="text-sm text-slate-400">Orders</p>
-              <p className="text-3xl font-bold text-white">{orders}</p>
+              <p>Orders</p>
+              <p className="text-2xl">{orders}</p>
             </div>
           </div>
-          <div className="rounded-3xl bg-slate-900 p-6 shadow-lg shadow-black/20 border border-slate-800 flex items-center gap-4">
-            <TrendingUp size={32} className="text-purple-400" />
+
+          <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+            <TrendingUp className="text-purple-400" />
             <div>
-              <p className="text-sm text-slate-400">Average Sale</p>
-              <p className="text-3xl font-bold text-white">${average}</p>
+              <p>Average</p>
+              <p className="text-2xl">${average}</p>
             </div>
           </div>
-          <div className="rounded-3xl bg-slate-900 p-6 shadow-lg shadow-black/20 border border-slate-800 flex items-center gap-4">
-            <Star size={32} className="text-yellow-400" />
+
+          <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+            <Star className="text-yellow-400" />
             <div>
-              <p className="text-sm text-slate-400">Top Product</p>
-              <p className="text-2xl font-bold text-cyan-300">{topProduct}</p>
+              <p>Top Product</p>
+              <p className="text-xl">{topProduct}</p>
             </div>
           </div>
+
         </div>
 
-        <div className="rounded-3xl bg-slate-900 p-6 shadow-lg shadow-black/20 border border-slate-800">
-          <div className="mb-6 grid gap-4 sm:grid-cols-2">
-            <div className="flex items-center gap-4">
-              <DollarSign size={24} className="text-green-400" />
-              <div>
-                <p className="text-sm text-slate-400">Cash Flow</p>
-                <p className="text-2xl font-bold text-white">${cashFlow}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Clock size={24} className="text-orange-400" />
-              <div>
-                <p className="text-sm text-slate-400">Latest Sale</p>
-                <p className="text-2xl font-bold text-white">{latestSale}</p>
-              </div>
-            </div>
-          </div>
+        {/* PER USER */}
+        <div className="bg-slate-900 p-6 rounded-2xl mb-6 border border-slate-800">
+          <h3 className="mb-3">Revenue per User</h3>
 
-          <h3 className="text-xl font-semibold mb-4">Recent Sales</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead className="bg-slate-800 text-slate-300">
+          {Object.entries(perUser).map(([user, total]) => (
+            <div key={user} className="flex justify-between py-1 border-b border-slate-800">
+              <span>{user}</span>
+              <span>${total}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* PER PRODUCT */}
+        <div className="bg-slate-900 p-6 rounded-2xl mb-6 border border-slate-800">
+          <h3 className="mb-3">Sales per Product</h3>
+
+          {Object.entries(perProduct).map(([product, qty]) => (
+            <div key={product} className="flex justify-between py-1 border-b border-slate-800">
+              <span>{product}</span>
+              <span>{qty} pcs</span>
+            </div>
+          ))}
+        </div>
+
+        {/* TABLE */}
+        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+          <h3 className="mb-4">Recent Sales</h3>
+
+          <table className="w-full text-left">
+            <thead className="text-slate-400">
+              <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filteredSales.length === 0 ? (
                 <tr>
-                  <th className="p-3 text-sm">Product</th>
-                  <th className="p-3 text-sm">Qty</th>
-                  <th className="p-3 text-sm">Total</th>
-                  <th className="p-3 text-sm">Date</th>
+                  <td colSpan={4} className="py-6 text-center text-slate-400">
+                    No sales recorded yet
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {sales.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-slate-400">
-                      No sales recorded yet.
-                    </td>
+              ) : (
+                filteredSales.map((sale) => (
+                  <tr key={sale.id} className="border-t border-slate-800">
+                    <td>{sale.productName}</td>
+                    <td>{sale.quantity}</td>
+                    <td>${Number(sale.total || 0)}</td>
+                    <td>{new Date(sale.date).toLocaleString()}</td>
                   </tr>
-                ) : (
-                  sales.map((sale) => (
-                    <tr key={sale.id} className="border-t border-slate-800 hover:bg-slate-950/50">
-                      <td className="p-3">{sale.productName}</td>
-                      <td className="p-3">{sale.quantity}</td>
-                      <td className="p-3">${sale.total}</td>
-                      <td className="p-3">{new Date(sale.date).toLocaleString()}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
+
         </div>
+
       </div>
     </div>
   );

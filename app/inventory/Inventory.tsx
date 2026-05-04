@@ -9,10 +9,12 @@ import AddProductForm from "./components/AddProductForm";
 import RestockModal from "./components/RestockModal";
 import EditProductModal from "./components/EditProductModal";
 
+import { supabase } from "@/lib/supabase";
+
 type InventoryProps = {
   products: Product[];
   categories: string[];
-  addProduct: (product: Omit<Product, "id">) => Promise<boolean>;
+
   updateProduct: (id: string, updates: Partial<Product>) => Promise<boolean>;
   deleteProduct: (id: string) => Promise<boolean>;
   restockProduct: (id: string, amount: number) => Promise<boolean>;
@@ -29,7 +31,6 @@ export default function Inventory(props: InventoryProps) {
   const {
     products,
     categories,
-    addProduct,
     updateProduct,
     deleteProduct,
     restockProduct,
@@ -47,9 +48,18 @@ export default function Inventory(props: InventoryProps) {
   const [stock, setStock] = useState(0);
 
   const [editItem, setEditItem] = useState<Product | null>(null);
-
   const [restockItem, setRestockItem] = useState<Product | null>(null);
   const [restockAmount, setRestockAmount] = useState(1);
+
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const showMessage = (type: "success" | "error", text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 3000);
+  };
 
   useEffect(() => {
     if (!category && categories.length > 0) {
@@ -57,10 +67,76 @@ export default function Inventory(props: InventoryProps) {
     }
   }, [categories]);
 
-  const addProductHandler = async () => {
-    if (!name.trim() || price <= 0 || stock < 0) return;
+  // =====================================================
+  // ✅ FIXED API FUNCTION (REAL SUPABASE AUTH)
+  // =====================================================
+  const addProductAPI = async (product: Omit<Product, "id">) => {
+    try {
+      // ✅ REAL USER (NO FAKE API ROUTES)
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    const success = await addProduct({
+      if (!user) {
+        showMessage("error", "You must be logged in");
+        return false;
+      }
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const token = session?.access_token;
+
+      if (!token) {
+        showMessage("error", "Session expired. Please login again");
+        return false;
+      }
+
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(product),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMessage("error", data.error || "Failed to add product");
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error(err);
+      showMessage("error", "Network error");
+      return false;
+    }
+  };
+
+  // =====================================================
+  // ADD PRODUCT
+  // =====================================================
+  const addProductHandler = async () => {
+    if (!name.trim()) {
+      showMessage("error", "Product name is required");
+      return;
+    }
+
+    if (price <= 0) {
+      showMessage("error", "Price must be greater than 0");
+      return;
+    }
+
+    if (stock < 0) {
+      showMessage("error", "Stock cannot be negative");
+      return;
+    }
+
+    const success = await addProductAPI({
       name: name.trim(),
       category,
       price,
@@ -71,23 +147,45 @@ export default function Inventory(props: InventoryProps) {
       setName("");
       setPrice(0);
       setStock(0);
+      showMessage("success", "Product added successfully");
     }
   };
 
+  // =====================================================
+  // EDIT
+  // =====================================================
   const saveEdit = async (data: Product) => {
-    await updateProduct(data.id, data);
-    setEditItem(null);
+    const success = await updateProduct(data.id, data);
+
+    if (success) {
+      showMessage("success", "Product updated successfully");
+      setEditItem(null);
+    } else {
+      showMessage("error", "Failed to update product");
+    }
   };
 
+  // =====================================================
+  // DELETE
+  // =====================================================
   const deleteProductHandler = async (id: string) => {
-    const product = products.find(p => p.id === id);
+    const product = products.find((p) => p.id === id);
     if (!product) return;
 
     if (confirm(`Delete ${product.name}?`)) {
-      await deleteProduct(id);
+      const success = await deleteProduct(id);
+
+      if (success) {
+        showMessage("success", "Product deleted successfully");
+      } else {
+        showMessage("error", "Failed to delete product");
+      }
     }
   };
 
+  // =====================================================
+  // RESTOCK
+  // =====================================================
   const openRestockModal = (product: Product) => {
     setRestockItem(product);
     setRestockAmount(1);
@@ -96,40 +194,71 @@ export default function Inventory(props: InventoryProps) {
   const saveRestock = async () => {
     if (!restockItem) return;
 
-    await restockProduct(restockItem.id, restockAmount);
+    if (restockAmount <= 0) {
+      showMessage("error", "Restock amount must be greater than 0");
+      return;
+    }
+
+    const success = await restockProduct(restockItem.id, restockAmount);
+
+    if (success) {
+      showMessage("success", "Stock updated successfully");
+    } else {
+      showMessage("error", "Failed to restock product");
+    }
 
     setRestockItem(null);
     setRestockAmount(1);
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-3xl font-bold">Inventory</h2>
+    <div className="w-full space-y-8 px-2 sm:px-4 lg:px-6">
+
+      {/* MESSAGE */}
+      {message && (
+        <div
+          className={`p-3 rounded-xl text-sm font-medium ${
+            message.type === "success"
+              ? "bg-green-500/20 text-green-400"
+              : "bg-red-500/20 text-red-400"
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
+
+      <h2 className="text-2xl sm:text-3xl font-bold">Inventory</h2>
 
       {/* ADD PRODUCT */}
-      <AddProductForm
-        name={name}
-        setName={setName}
-        category={category}
-        setCategory={setCategory}
-        price={price}
-        setPrice={setPrice}
-        stock={stock}
-        setStock={setStock}
-        categories={categories}
-        addProductHandler={addProductHandler}
-      />
+      <section>
+        <AddProductForm
+          name={name}
+          setName={setName}
+          category={category}
+          setCategory={setCategory}
+          price={price}
+          setPrice={setPrice}
+          stock={stock}
+          setStock={setStock}
+          categories={categories}
+          addProductHandler={addProductHandler}
+        />
+      </section>
 
       {/* TABLE */}
-      <ProductTable
-        products={products}
-        openSell={openSell}
-        onEdit={setEditItem}
-        onRestock={openRestockModal}
-        onDelete={deleteProductHandler}
-      />
+      <section>
+        <div className="rounded-2xl overflow-auto max-h-[65vh] bg-white/5">
+          <ProductTable
+            products={products}
+            openSell={openSell}
+            onEdit={setEditItem}
+            onRestock={openRestockModal}
+            onDelete={deleteProductHandler}
+          />
+        </div>
+      </section>
 
-      {/* SELL MODAL */}
+      {/* MODALS */}
       <SellModal
         sellItem={sellItem}
         sellQty={sellQty}
@@ -138,14 +267,12 @@ export default function Inventory(props: InventoryProps) {
         confirmSell={confirmSell}
       />
 
-      {/* EDIT MODAL */}
       <EditProductModal
         editItem={editItem}
         setEditItem={setEditItem}
         saveEdit={saveEdit}
       />
 
-      {/* RESTOCK MODAL */}
       <RestockModal
         restockItem={restockItem}
         restockAmount={restockAmount}

@@ -1,4 +1,4 @@
-
+//types/index.ts
 import { z } from 'zod';
 
 // Validation schemas

@@ -1,3 +1,18 @@
+"use client";
+
+type Props = {
+  name: string;
+  setName: (v: string) => void;
+  category: string;
+  setCategory: (v: string) => void;
+  price: number;
+  setPrice: (v: number) => void;
+  stock: number;
+  setStock: (v: number) => void;
+  categories: string[];
+  addProductHandler: () => void;
+};
+
 export default function AddProductForm({
   name,
   setName,
@@ -9,92 +24,87 @@ export default function AddProductForm({
   setStock,
   categories,
   addProductHandler,
-}: any) {
+}: Props) {
   return (
-    <div className="bg-slate-900/40 border border-white/10 rounded-2xl p-6">
-
-      <h3 className="text-xl font-semibold mb-4 text-white">
+    <div className="w-full bg-slate-900/40 border border-white/10 rounded-2xl p-4 sm:p-6">
+      <h3 className="text-lg sm:text-xl font-semibold mb-4 text-white">
         ➕ Add New Product
       </h3>
 
-      {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        {/* NAME */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Product Name */}
         <div>
           <label className="text-sm text-gray-300">Product Name</label>
           <input
             className="input"
             value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="e.g. Laptop"
+            onChange={(e) => setName(e.target.value)}
           />
         </div>
 
-        {/* CATEGORY */}
+        {/* Category */}
         <div>
           <label className="text-sm text-gray-300">Category</label>
           <select
             className="input text-white bg-slate-800"
             value={category}
-            onChange={e => setCategory(e.target.value)}
+            onChange={(e) => setCategory(e.target.value)}
           >
-            {categories.map((c: string) => (
-              <option key={c} className="text-black">
-                {c}
-              </option>
-            ))}
+            {(categories || []).length === 0 ? (
+              <option className="text-black">No categories</option>
+            ) : (
+              (categories || []).map((c) => (
+                <option key={c} value={c} className="text-black">
+                  {c}
+                </option>
+              ))
+            )}
           </select>
         </div>
 
-        {/* PRICE */}
+        {/* Price */}
         <div>
           <label className="text-sm text-gray-300">Price ($)</label>
           <input
             className="input"
             type="number"
             value={price}
-            onChange={e => setPrice(Number(e.target.value))}
-            placeholder="0.00"
+            onChange={(e) => setPrice(Number(e.target.value))}
           />
         </div>
 
-        {/* STOCK */}
+        {/* Stock */}
         <div>
           <label className="text-sm text-gray-300">Stock Qty</label>
           <input
             className="input"
             type="number"
             value={stock}
-            onChange={e => setStock(Number(e.target.value))}
-            placeholder="0"
+            onChange={(e) => setStock(Number(e.target.value))}
           />
         </div>
       </div>
 
-      {/* BUTTON */}
+      {/* Button */}
       <div className="mt-5 flex justify-end">
-        <button onClick={addProductHandler} className="btn">
+        <button
+          type="button" // ✅ prevents accidental page reload
+          onClick={addProductHandler}
+          className="btn w-full sm:w-auto"
+        >
           + Add Product
         </button>
       </div>
 
-      {/* STYLES */}
       <style jsx>{`
         .input {
           width: 100%;
           margin-top: 6px;
           padding: 12px;
           border-radius: 12px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
           color: white;
-          outline: none;
-        }
-
-        .input:focus {
-          border-color: #6366f1;
-          background: rgba(255,255,255,0.1);
         }
 
         .btn {
