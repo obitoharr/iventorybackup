@@ -1,3 +1,4 @@
+//app/inventory/components/AddProductForm.tsx
 "use client";
 
 type Props = {

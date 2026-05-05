@@ -1,7 +1,8 @@
+//app/inventory/add/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import AddProductForm from "./../components/AddProductForm";
+import AddProductForm from "../components/AddProductForm";
 import { supabase } from "@/lib/supabase";
 
 type Product = {
@@ -23,46 +24,25 @@ export default function AddPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // ✅ fetch categories (UNCHANGED)
+  // ================= CATEGORIES =================
   useEffect(() => {
     const fetchCategories = async () => {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("name");
-
-      if (error) {
-        console.error("Error fetching categories:", error);
-        return;
-      }
-
-      const names = data.map((c: any) => c.name);
-      setCategories(names);
+      const { data } = await supabase.from("categories").select("name");
+      setCategories(data?.map((c: any) => c.name) || []);
     };
 
     fetchCategories();
   }, []);
 
-  // ✅ auto select category
   useEffect(() => {
     if (!category && categories.length > 0) {
       setCategory(categories[0]);
     }
   }, [categories]);
 
-  // ✅ FIXED: API + AUTH
+  // ================= ADD PRODUCT =================
   const addProduct = async (product: Omit<Product, "id">) => {
     try {
-      // 🔥 ensure user exists
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setMessage("❌ You must be logged in");
-        return false;
-      }
-
-      // 🔥 get session token
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -70,11 +50,10 @@ export default function AddPage() {
       const token = session?.access_token;
 
       if (!token) {
-        setMessage("❌ Session expired. Please login again.");
+        setMessage("❌ Not authenticated");
         return false;
       }
 
-      // ✅ call API
       const res = await fetch("/api/products", {
         method: "POST",
         headers: {
@@ -87,20 +66,17 @@ export default function AddPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        console.error("Insert error:", data.error);
-        setMessage("❌ " + (data.error || "Failed to add product"));
+        setMessage("❌ " + (data.error || "Failed"));
         return false;
       }
 
       return true;
-    } catch (err) {
-      console.error("Network error:", err);
+    } catch {
       setMessage("❌ Network error");
       return false;
     }
   };
 
-  // ✅ handler (UNCHANGED)
   const addProductHandler = async () => {
     if (loading) return;
 
@@ -130,36 +106,37 @@ export default function AddPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="w-full">
 
-        {/* ✅ message */}
-        {message && (
-          <div className="mb-4 p-3 rounded-xl bg-white/10 text-center">
-            {message}
-          </div>
-        )}
+      <h1 className="text-3xl font-bold">Add Product</h1>
+      <p className="text-gray-400 mt-2 mb-6">
+        Create new products
+      </p>
 
-        <AddProductForm
-          name={name}
-          setName={setName}
-          category={category}
-          setCategory={setCategory}
-          price={price}
-          setPrice={setPrice}
-          stock={stock}
-          setStock={setStock}
-          categories={categories}
-          addProductHandler={addProductHandler}
-        />
+      {message && (
+        <div className="mb-4 p-3 rounded-xl bg-white/10 text-center">
+          {message}
+        </div>
+      )}
 
-        {/* ✅ loading */}
-        {loading && (
-          <p className="mt-3 text-sm text-gray-400 text-center">
-            Adding product...
-          </p>
-        )}
-      </div>
+      <AddProductForm
+        name={name}
+        setName={setName}
+        category={category}
+        setCategory={setCategory}
+        price={price}
+        setPrice={setPrice}
+        stock={stock}
+        setStock={setStock}
+        categories={categories}
+        addProductHandler={addProductHandler}
+      />
+
+      {loading && (
+        <p className="mt-3 text-gray-400 text-center">
+          Adding product...
+        </p>
+      )}
     </div>
   );
 }

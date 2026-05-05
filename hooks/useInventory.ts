@@ -26,7 +26,7 @@ export function useInventory() {
 
     setProducts(products || []);
     setSales(sales || []);
-    setCategories(categories?.map((c) => c.name) || []);
+setCategories(categories?.map((c) => c.name) || []);
 
     setLoading({ isLoading: false, error: null });
   }, []);

@@ -6,20 +6,24 @@ import Inventory from "./inventory/Inventory";
 import Dashboard from "../components/Dashboard";
 import Categories from "../components/Categories";
 import SalesPage from "./sales/page";
+import AddPage from "./inventory/add/page"; // ✅ ADD THIS
+
 import { useInventory } from "../hooks/useInventory";
 
-// ✅ NEW (auth)
+// auth
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function Page() {
   const inventory = useInventory();
+
+  // ✅ ALL PAGES CONTROLLED HERE
   const [page, setPage] = useState("dashboard");
   const [dark, setDark] = useState(true);
 
   const router = useRouter();
 
-  // ✅ PROTECT PAGE (DO NOT REMOVE)
+  // ================= AUTH PROTECTION =================
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -38,6 +42,7 @@ export default function Page() {
   return (
     <div className={`flex min-h-screen items-start flex-col lg:flex-row ${theme}`}>
 
+      {/* ================= SIDEBAR ================= */}
       <Sidebar
         page={page}
         setPage={setPage}
@@ -45,23 +50,23 @@ export default function Page() {
         setDark={setDark}
       />
 
+      {/* ================= MAIN CONTENT ================= */}
       <div className="flex-1 p-4 sm:p-6">
 
-        {page === "dashboard" && (
-          <Dashboard
-            products={inventory.products}
-            sales={inventory.sales}
-          />
-        )}
+        {/* DASHBOARD */}
+        {page === "dashboard" && <Dashboard />}
 
+        {/* INVENTORY */}
         {page === "inventory" && (
           <Inventory {...inventory} />
         )}
 
+        {/* SALES */}
         {page === "sales" && (
           <SalesPage />
         )}
 
+        {/* CATEGORIES */}
         {page === "categories" && (
           <Categories
             categories={inventory.categories}
@@ -69,6 +74,11 @@ export default function Page() {
           />
         )}
 
+        {/* ✅ ADD PRODUCT (FIXED) */}
+        {page === "add" && (
+          <AddPage />
+        )}
+    
       </div>
     </div>
   );

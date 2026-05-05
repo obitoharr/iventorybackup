@@ -37,23 +37,27 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ insert
-    const { error: insertError } = await supabase.from("products").insert({
-      name,
-      category,
-      price,
-      stock,
-      user_id: user.id,
-    });
+    // ✅ insert and return the inserted row for immediate client update
+    const { data: insertedProduct, error: insertError } = await supabase
+      .from("products")
+      .insert({
+        name,
+        category,
+        price,
+        stock,
+        user_id: user.id,
+      })
+      .select()
+      .single();
 
-    if (insertError) {
+    if (insertError || !insertedProduct) {
       return NextResponse.json(
-        { error: insertError.message },
+        { error: insertError?.message || "Failed to add product" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: insertedProduct });
   } catch (err) {
     return NextResponse.json(
       { error: "Invalid request" },

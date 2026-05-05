@@ -17,9 +17,7 @@ export default function ProductTable({
 }) {
   return (
     <div className="w-full max-h-[70vh] overflow-auto rounded-2xl bg-white/10">
-
       <table className="min-w-[800px] w-full text-sm">
-
         <thead className="sticky top-0 bg-slate-900 z-10">
           <tr>
             <th className="p-3 text-left">Name</th>
@@ -29,7 +27,6 @@ export default function ProductTable({
             <th className="p-3 text-left">Actions</th>
           </tr>
         </thead>
-
         <tbody>
           {products.length === 0 ? (
             <tr>
@@ -40,14 +37,11 @@ export default function ProductTable({
           ) : (
             products.map((p) => (
               <tr key={p.id} className="border-t border-white/10">
-
                 <td className="p-3 whitespace-nowrap">{p.name}</td>
                 <td className="p-3 whitespace-nowrap">{p.category}</td>
                 <td className="p-3 whitespace-nowrap">${p.price}</td>
                 <td className="p-3 whitespace-nowrap">{p.stock}</td>
-
                 <td className="p-3 flex flex-wrap gap-2">
-
                   <button
                     onClick={() => openSell(p)}
                     className="text-green-400 flex items-center gap-1"
@@ -55,7 +49,6 @@ export default function ProductTable({
                     <ShoppingCart size={16} />
                     Sell
                   </button>
-
                   <button
                     onClick={() => onRestock?.(p)}
                     className="text-indigo-400 flex items-center gap-1"
@@ -63,7 +56,6 @@ export default function ProductTable({
                     <Plus size={16} />
                     Restock
                   </button>
-
                   <button
                     onClick={() => onEdit?.(p)}
                     className="text-yellow-400 flex items-center gap-1"
@@ -71,7 +63,6 @@ export default function ProductTable({
                     <Edit size={16} />
                     Edit
                   </button>
-
                   <button
                     onClick={() => onDelete?.(p.id)}
                     className="text-red-400 flex items-center gap-1"
@@ -79,9 +70,7 @@ export default function ProductTable({
                     <Trash2 size={16} />
                     Delete
                   </button>
-
                 </td>
-
               </tr>
             ))
           )}
