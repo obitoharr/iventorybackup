@@ -1,4 +1,5 @@
 ﻿//app/components/Dashboard.tsx
+"use client";
 import { useInventory } from "../hooks/useInventory";
 import StatsCards from "./StatsCards";
 
