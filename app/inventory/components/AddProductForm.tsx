@@ -59,8 +59,8 @@ export default function AddProductForm({
             ) : (categories || []).length === 0 ? (
               <option className="text-black">No categories</option>
             ) : (
-              (categories || []).map((c) => (
-                <option key={c} value={c} className="text-black">
+              (categories || []).map((c, index) => (
+                <option key={`${c}-${index}`} value={c} className="text-black">
                   {c}
                 </option>
               ))
@@ -90,6 +90,7 @@ export default function AddProductForm({
           />
         </div>
       </div>
+
 
       {/* Button */}
       <div className="mt-5 flex justify-end">

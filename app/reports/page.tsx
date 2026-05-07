@@ -5,7 +5,9 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Sale } from "../../types";
 import Sidebar from "@/components/Sidebar";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { jsPDF } from "jspdf";
+
 import {
   Download,
   DollarSign,
@@ -15,308 +17,602 @@ import {
 } from "lucide-react";
 
 export default function ReportsPage() {
+  const { loading } = useRequireAuth();
+
   const [dark, setDark] = useState(true);
   const [sales, setSales] = useState<Sale[]>([]);
   const [filter, setFilter] = useState<"7d" | "30d" | "all">("all");
+  const [loadingSales, setLoadingSales] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load sales from Supabase
+  // ================= LOAD SALES =================
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase.from("sales").select("*");
-      // Map field names to match what the component expects
-      const mapped = (data || []).map((sale: any) => ({
-        ...sale,
-        // Ensure we have a consistent product name field
-        productName: sale.product_name || sale.productName,
-        // Ensure date is available (prefer 'date', fallback to 'created_at')
-        date: sale.date || sale.created_at,
-      }));
-      setSales(mapped);
+    const loadSales = async () => {
+      setLoadingSales(true);
+      setError(null);
+
+      try {
+        const {
+          data: authData,
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError || !authData.user) {
+          throw new Error("Authentication required");
+        }
+
+        const { data, error } = await supabase
+          .from("sales")
+          .select(
+            "id, product_id, product_name, quantity, total, created_at, user_id"
+          )
+          .eq("user_id", authData.user.id)
+          .order("created_at", { ascending: false })
+          .limit(500);
+
+        if (error) {
+          throw error;
+        }
+
+        const mapped: Sale[] = (data || []).map(
+          (sale: any) => ({
+            ...sale,
+            productName:
+              sale.product_name ||
+              sale.productName ||
+              "Unknown",
+            date:
+              sale.date || sale.created_at,
+          })
+        );
+
+        setSales(mapped);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load reports"
+        );
+
+        setSales([]);
+      } finally {
+        setLoadingSales(false);
+      }
     };
 
-    load();
-  }, []);
+    // Wait until auth finishes
+    if (!loading) {
+      loadSales();
+    }
+  }, [loading]);
 
-  // Helper to get a valid date object from a sale
-  const getSaleDate = (sale: any): Date | null => {
-    const dateValue = sale.date || sale.created_at;
+  // ================= SAFE DATE =================
+  const getSaleDate = (
+    sale: any
+  ): Date | null => {
+    const dateValue =
+      sale.date || sale.created_at;
+
     if (!dateValue) return null;
+
     const d = new Date(dateValue);
+
     return isNaN(d.getTime()) ? null : d;
   };
 
-  // Date filtering
+  // ================= FILTER SALES =================
   const filteredSales = useMemo(() => {
     const now = new Date();
 
     return sales.filter((sale) => {
       const saleDate = getSaleDate(sale);
-      if (!saleDate) return false; // skip sales with no valid date
+
+      if (!saleDate) return false;
 
       if (filter === "all") return true;
 
       const diffDays =
-        (now.getTime() - saleDate.getTime()) / (1000 * 60 * 60 * 24);
+        (now.getTime() -
+          saleDate.getTime()) /
+        (1000 * 60 * 60 * 24);
 
-      if (filter === "7d") return diffDays <= 7;
-      if (filter === "30d") return diffDays <= 30;
+      if (filter === "7d") {
+        return diffDays <= 7;
+      }
+
+      if (filter === "30d") {
+        return diffDays <= 30;
+      }
 
       return true;
     });
   }, [sales, filter]);
 
-  // Revenue
-  const revenue = useMemo(
-    () => filteredSales.reduce((sum, s) => sum + Number(s.total || 0), 0),
-    [filteredSales]
-  );
+  // ================= TOTAL REVENUE =================
+  const revenue = useMemo(() => {
+    return filteredSales.reduce(
+      (sum, sale) =>
+        sum + Number(sale.total || 0),
+      0
+    );
+  }, [filteredSales]);
 
+  // ================= ORDERS =================
   const orders = filteredSales.length;
-  const average = orders ? (revenue / orders).toFixed(2) : "0.00";
 
-  // Latest sale date (formatted safely)
+  // ================= AVERAGE =================
+  const average = useMemo(() => {
+    if (!orders) return "0.00";
+
+    return (
+      revenue / orders
+    ).toFixed(2);
+  }, [revenue, orders]);
+
+  // ================= LATEST SALE =================
   const latestSale = useMemo(() => {
-    if (filteredSales.length === 0) return "No sales yet";
+    if (filteredSales.length === 0) {
+      return "No sales yet";
+    }
+
     const latest = filteredSales[0];
+
     const saleDate = getSaleDate(latest);
-    return saleDate ? saleDate.toLocaleString('en-US', { timeZone: 'Africa/Mogadishu' }) : "Invalid date";
+
+    return saleDate
+      ? saleDate.toLocaleString(
+          "en-US",
+          {
+            timeZone:
+              "Africa/Mogadishu",
+          }
+        )
+      : "Invalid date";
   }, [filteredSales]);
 
-  // Top product
+  // ================= TOP PRODUCT =================
   const topProduct = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, number> =
+      {};
 
-    filteredSales.forEach((s) => {
-      const name = s.productName || s.productName || "Unknown";
-      map[name] = (map[name] || 0) + s.quantity;
+    filteredSales.forEach((sale) => {
+      const name =
+        sale.productName || "Unknown";
+
+      map[name] =
+        (map[name] || 0) +
+        Number(sale.quantity || 0);
     });
 
-    return Object.entries(map)
-      .sort((a, b) => b[1] - a[1])[0]?.[0] || "No sales";
+    return (
+      Object.entries(map).sort(
+        (a, b) => b[1] - a[1]
+      )[0]?.[0] || "No sales"
+    );
   }, [filteredSales]);
 
-  // Per user
+  // ================= PER USER =================
   const perUser = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, number> =
+      {};
 
-    filteredSales.forEach((s: any) => {
-      const user = s.user_id || "unknown";
-      map[user] = (map[user] || 0) + Number(s.total || 0);
+    filteredSales.forEach((sale: any) => {
+      const user =
+        sale.user_id || "unknown";
+
+      map[user] =
+        (map[user] || 0) +
+        Number(sale.total || 0);
     });
 
     return map;
   }, [filteredSales]);
 
-  // Per product
+  // ================= PER PRODUCT =================
   const perProduct = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, number> =
+      {};
 
-    filteredSales.forEach((s) => {
-      const name = s.productName || s.productName || "Unknown";
-      map[name] = (map[name] || 0) + s.quantity;
+    filteredSales.forEach((sale) => {
+      const name =
+        sale.productName || "Unknown";
+
+      map[name] =
+        (map[name] || 0) +
+        Number(sale.quantity || 0);
     });
 
     return map;
   }, [filteredSales]);
 
+  // ================= DOWNLOAD PDF =================
   const downloadPdf = () => {
-    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    const doc = new jsPDF({
+      unit: "pt",
+      format: "letter",
+    });
+
     const margin = 40;
     const lineHeight = 18;
+
     let y = 60;
 
-    doc.setFontSize(18);
+    doc.setFontSize(20);
     doc.text("Sales Report", margin, y);
-    y += lineHeight * 1.5;
+
+    y += lineHeight * 2;
 
     doc.setFontSize(11);
+
     doc.text("Sale ID", margin, y);
     doc.text("Product", margin + 80, y);
     doc.text("Qty", margin + 260, y);
     doc.text("Total", margin + 320, y);
     doc.text("Date", margin + 400, y);
+
     y += lineHeight;
 
-    filteredSales.forEach((sale, index) => {
-      const saleDate = getSaleDate(sale);
-      const row = [
-        String(sale.id ?? ""),
-        sale.productName || sale.productName || "Unknown",
-        String(sale.quantity ?? ""),
-        `$${Number(sale.total || 0).toFixed(2)}`,
-        saleDate ? saleDate.toLocaleString('en-US', { timeZone: 'Africa/Mogadishu' }) : "No date",
-      ];
+    filteredSales.forEach((sale) => {
+      const saleDate =
+        getSaleDate(sale);
 
       if (y > 740) {
         doc.addPage();
         y = 60;
       }
 
-      doc.text(row[0], margin, y);
-      doc.text(row[1], margin + 80, y, { maxWidth: 160 });
-      doc.text(row[2], margin + 260, y);
-      doc.text(row[3], margin + 320, y);
-      doc.text(row[4], margin + 400, y, { maxWidth: 180 });
+      doc.text(
+        String(sale.id ?? ""),
+        margin,
+        y
+      );
+
+      doc.text(
+        sale.productName || "Unknown",
+        margin + 80,
+        y,
+        {
+          maxWidth: 160,
+        }
+      );
+
+      doc.text(
+        String(sale.quantity ?? ""),
+        margin + 260,
+        y
+      );
+
+      doc.text(
+        `$${Number(
+          sale.total || 0
+        ).toFixed(2)}`,
+        margin + 320,
+        y
+      );
+
+      doc.text(
+        saleDate
+          ? saleDate.toLocaleString(
+              "en-US",
+              {
+                timeZone:
+                  "Africa/Mogadishu",
+              }
+            )
+          : "No date",
+        margin + 400,
+        y,
+        {
+          maxWidth: 180,
+        }
+      );
+
       y += lineHeight;
     });
 
     doc.save("sales-report.pdf");
   };
 
+  // ================= THEME =================
   const theme = dark
     ? "bg-slate-950 text-slate-100"
     : "bg-slate-100 text-slate-950";
 
+  // ================= AUTH LOADING =================
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+        <div className="flex items-center gap-3">
+          <span className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+          <p>Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex min-h-screen items-start flex-col lg:flex-row ${theme}`}>
+    <div
+      className={`flex min-h-screen items-start flex-col lg:flex-row ${theme}`}
+    >
       <Sidebar dark={dark} setDark={setDark} />
 
-      <div className="flex-1 p-4 sm:p-6">
-        <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8 text-slate-100">
-          <div className="mx-auto max-w-7xl">
-            {/* HEADER */}
-            <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <Link
-                    href="/"
-                    className="rounded-full bg-slate-900 px-3 py-1 text-sm text-cyan-400 hover:bg-slate-800"
-                  >
-                    ← Back to Dashboard
-                  </Link>
-                </div>
-                <h2 className="text-3xl font-semibold">Reports</h2>
-                {/* FILTER BUTTONS */}
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={() => setFilter("7d")}
-                    className="px-2 py-1 text-xs bg-slate-800 rounded"
-                  >
-                    7D
-                  </button>
-                  <button
-                    onClick={() => setFilter("30d")}
-                    className="px-2 py-1 text-xs bg-slate-800 rounded"
-                  >
-                    30D
-                  </button>
-                  <button
-                    onClick={() => setFilter("all")}
-                    className="px-2 py-1 text-xs bg-slate-800 rounded"
-                  >
-                    ALL
-                  </button>
-                </div>
-              </div>
-
-              {/* EXPORT BUTTON */}
-              <button
-                onClick={downloadPdf}
-                className="rounded-2xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 flex items-center gap-2"
-              >
-                <Download size={20} />
-                Download PDF
-              </button>
-            </div>
-
-            {/* STATS */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-              <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
-                <DollarSign className="text-green-400" />
-                <div>
-                  <p>Total Revenue</p>
-                  <p className="text-2xl">${revenue}</p>
-                </div>
-              </div>
-
-              <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
-                <ShoppingBag className="text-blue-400" />
-                <div>
-                  <p>Orders</p>
-                  <p className="text-2xl">{orders}</p>
-                </div>
-              </div>
-
-              <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
-                <TrendingUp className="text-purple-400" />
-                <div>
-                  <p>Average</p>
-                  <p className="text-2xl">${average}</p>
-                </div>
-              </div>
-
-              <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
-                <Star className="text-yellow-400" />
-                <div>
-                  <p>Top Product</p>
-                  <p className="text-xl">{topProduct}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* PER USER */}
-            <div className="bg-slate-900 p-6 rounded-2xl mb-6 border border-slate-800">
-              <h3 className="mb-3">Revenue per User</h3>
-              {Object.entries(perUser).map(([user, total]) => (
-                <div
-                  key={user}
-                  className="flex justify-between py-1 border-b border-slate-800"
+      <div className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+        <div className="mx-auto max-w-7xl">
+          {/* HEADER */}
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <Link
+                  href="/"
+                  className="rounded-full bg-slate-900 px-3 py-1 text-sm text-cyan-400 hover:bg-slate-800 transition"
                 >
-                  <span>{user}</span>
-                  <span>${total}</span>
-                </div>
-              ))}
+                  ← Back to Dashboard
+                </Link>
+              </div>
+
+              <h2 className="text-3xl font-semibold">
+                Reports
+              </h2>
+
+              <p className="text-slate-400 mt-2">
+                Latest sale: {latestSale}
+              </p>
+
+              {/* FILTERS */}
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() =>
+                    setFilter("7d")
+                  }
+                  className={`px-3 py-1 rounded-lg text-sm transition ${
+                    filter === "7d"
+                      ? "bg-cyan-500 text-slate-950"
+                      : "bg-slate-800"
+                  }`}
+                >
+                  7D
+                </button>
+
+                <button
+                  onClick={() =>
+                    setFilter("30d")
+                  }
+                  className={`px-3 py-1 rounded-lg text-sm transition ${
+                    filter === "30d"
+                      ? "bg-cyan-500 text-slate-950"
+                      : "bg-slate-800"
+                  }`}
+                >
+                  30D
+                </button>
+
+                <button
+                  onClick={() =>
+                    setFilter("all")
+                  }
+                  className={`px-3 py-1 rounded-lg text-sm transition ${
+                    filter === "all"
+                      ? "bg-cyan-500 text-slate-950"
+                      : "bg-slate-800"
+                  }`}
+                >
+                  ALL
+                </button>
+              </div>
             </div>
 
-            {/* PER PRODUCT */}
-            <div className="bg-slate-900 p-6 rounded-2xl mb-6 border border-slate-800">
-              <h3 className="mb-3">Sales per Product</h3>
-              {Object.entries(perProduct).map(([product, qty]) => (
+            {/* DOWNLOAD */}
+            <button
+              onClick={downloadPdf}
+              className="rounded-2xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 flex items-center gap-2 hover:opacity-90 transition"
+            >
+              <Download size={20} />
+              Download PDF
+            </button>
+          </div>
+
+          {/* ERROR */}
+          {error && (
+            <div className="mb-6 rounded-2xl bg-red-500/10 border border-red-500/20 p-4 text-red-100">
+              {error}
+            </div>
+          )}
+
+          {/* LOADING */}
+          {loadingSales && (
+            <div className="mb-6 rounded-2xl bg-slate-900 p-4 text-slate-300">
+              Loading sales report...
+            </div>
+          )}
+
+          {/* STATS */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+              <DollarSign className="text-green-400" />
+
+              <div>
+                <p>Total Revenue</p>
+
+                <p className="text-2xl font-bold">
+                  ${revenue.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+              <ShoppingBag className="text-blue-400" />
+
+              <div>
+                <p>Orders</p>
+
+                <p className="text-2xl font-bold">
+                  {orders}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+              <TrendingUp className="text-purple-400" />
+
+              <div>
+                <p>Average</p>
+
+                <p className="text-2xl font-bold">
+                  ${average}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+              <Star className="text-yellow-400" />
+
+              <div>
+                <p>Top Product</p>
+
+                <p className="text-lg font-bold">
+                  {topProduct}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* PER USER */}
+          <div className="bg-slate-900 p-6 rounded-2xl mb-6 border border-slate-800">
+            <h3 className="mb-4 text-lg font-semibold">
+              Revenue per User
+            </h3>
+
+            {Object.entries(perUser).map(
+              ([user, total], index) => (
                 <div
-                  key={product}
-                  className="flex justify-between py-1 border-b border-slate-800"
+                  key={`${user}-${index}`}
+                  className="flex justify-between py-2 border-b border-slate-800"
+                >
+                  <span className="truncate">
+                    {user}
+                  </span>
+
+                  <span className="text-green-400">
+                    $
+                    {Number(total).toFixed(
+                      2
+                    )}
+                  </span>
+                </div>
+              )
+            )}
+          </div>
+
+          {/* PER PRODUCT */}
+          <div className="bg-slate-900 p-6 rounded-2xl mb-6 border border-slate-800">
+            <h3 className="mb-4 text-lg font-semibold">
+              Sales per Product
+            </h3>
+
+            {Object.entries(perProduct).map(
+              ([product, qty], index) => (
+                <div
+                  key={`${product}-${index}`}
+                  className="flex justify-between py-2 border-b border-slate-800"
                 >
                   <span>{product}</span>
+
                   <span>{qty} pcs</span>
                 </div>
-              ))}
-            </div>
+              )
+            )}
+          </div>
 
-            {/* TABLE */}
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
-              <h3 className="mb-4">Recent Sales</h3>
-              <table className="w-full text-left">
-                <thead className="text-slate-400">
+          {/* TABLE */}
+          <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 overflow-auto">
+            <h3 className="mb-4 text-lg font-semibold">
+              Recent Sales
+            </h3>
+
+            <table className="w-full min-w-[700px] text-left">
+              <thead className="text-slate-400">
+                <tr>
+                  <th className="pb-3">
+                    Product
+                  </th>
+
+                  <th className="pb-3">
+                    Qty
+                  </th>
+
+                  <th className="pb-3">
+                    Total
+                  </th>
+
+                  <th className="pb-3">
+                    Date
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredSales.length ===
+                0 ? (
                   <tr>
-                    <th>Product</th>
-                    <th>Qty</th>
-                    <th>Total</th>
-                    <th>Date</th>
+                    <td
+                      colSpan={4}
+                      className="py-6 text-center text-slate-400"
+                    >
+                      No sales recorded yet
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredSales.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="py-6 text-center text-slate-400">
-                        No sales recorded yet
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredSales.map((sale) => {
-                      const saleDate = getSaleDate(sale);
+                ) : (
+                  filteredSales.map(
+                    (sale) => {
+                      const saleDate =
+                        getSaleDate(
+                          sale
+                        );
+
                       return (
-                        <tr key={sale.id} className="border-t border-slate-800">
-                          <td>{sale.productName || sale.productName || "Unknown"}</td>
-                          <td>{sale.quantity}</td>
-                          <td>${Number(sale.total || 0)}</td>
-                          <td>{saleDate ? saleDate.toLocaleString('en-US', { timeZone: 'Africa/Mogadishu' }) : "No date"}</td>
+                        <tr
+                          key={sale.id}
+                          className="border-t border-slate-800"
+                        >
+                          <td className="py-3">
+                            {sale.productName ||
+                              "Unknown"}
+                          </td>
+
+                          <td className="py-3">
+                            {
+                              sale.quantity
+                            }
+                          </td>
+
+                          <td className="py-3 text-green-400">
+                            $
+                            {Number(
+                              sale.total ||
+                                0
+                            ).toFixed(
+                              2
+                            )}
+                          </td>
+
+                          <td className="py-3 text-sm text-slate-300">
+                            {saleDate
+                              ? saleDate.toLocaleString(
+                                  "en-US",
+                                  {
+                                    timeZone:
+                                      "Africa/Mogadishu",
+                                  }
+                                )
+                              : "No date"}
+                          </td>
                         </tr>
                       );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    }
+                  )
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

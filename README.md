@@ -1,5 +1,21 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Prerequisites
+
+- Supabase account and project
+- Environment variables configured in `.env.local`
+
+## Important: Database Setup
+
+Before running the application, you must create database indexes for optimal performance. See [supabase/README.md](./supabase/README.md) for setup instructions.
+
+**Quick Setup:**
+1. Go to your Supabase Dashboard → SQL Editor
+2. Copy and paste the SQL from `supabase/migrations/20260506000001_add_performance_indexes.sql`
+3. Click Run
+
+This is essential for handling 100+ concurrent users without performance degradation.
+
 ## Getting Started
 
 First, run the development server:

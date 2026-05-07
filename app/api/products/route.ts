@@ -10,6 +10,7 @@ const ProductSchema = z.object({
     .number()
     .int("Stock must be an integer")
     .nonnegative("Stock cannot be negative"),
+  notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
 });
 
 export async function POST(req: Request) {
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 422 });
   }
 
-  const { name, category, price, stock } = parseResult.data;
+  const { name, category, price, stock, notes } = parseResult.data;
   const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(authHeader);
   if (userError || !userData.user) {
     return NextResponse.json(
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
       category,
       price,
       stock,
+      notes,
       user_id: userData.user.id,
     })
     .select()

@@ -1,31 +1,82 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState<string>("");
+  const [messageType, setMessageType] = useState<"error" | "success">("error");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const login = async () => {
-    setMessage("");
+  useEffect(() => {
+    let mounted = true;
+    
+    const redirectIfSignedIn = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (mounted && data.user) {
+          router.push("/");
+        }
+      } catch (err) {
+        // Stay on login page on error
+      }
+    };
+
+    redirectIfSignedIn();
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  const validate = () => {
     if (!email.trim() || !password) {
+      setMessageType("error");
       setMessage("Email and password are required.");
-      return;
+      return false;
     }
 
+    const emailValid = /\S+@\S+\.\S+/.test(email);
+    if (!emailValid) {
+      setMessageType("error");
+      setMessage("Please enter a valid email address.");
+      return false;
+    }
+
+    if (password.length < 6) {
+      setMessageType("error");
+      setMessage("Password must be at least 6 characters.");
+      return false;
+    }
+
+    if (mode === "signup" && password !== confirmPassword) {
+      setMessageType("error");
+      setMessage("Passwords do not match.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const login = async () => {
+    if (!validate()) return;
     setLoading(true);
+    setMessage("");
+
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
+
     setLoading(false);
 
     if (error) {
+      setMessageType("error");
       setMessage(error.message);
     } else {
       router.push("/");
@@ -33,67 +84,100 @@ export default function LoginPage() {
   };
 
   const signup = async () => {
-    setMessage("");
-    if (!email.trim() || !password) {
-      setMessage("Email and password are required.");
-      return;
-    }
-
+    if (!validate()) return;
     setLoading(true);
+    setMessage("");
+
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
     });
+
     setLoading(false);
 
     if (error) {
+      setMessageType("error");
       setMessage(error.message);
     } else {
+      setMessageType("success");
       setMessage("Account created successfully. Please log in.");
+      setMode("login");
+      setPassword("");
+      setConfirmPassword("");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
-      <div className="p-6 bg-white/10 rounded-2xl w-[320px] space-y-4">
-        <h2 className="text-xl font-bold">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white px-4">
+      <div className="w-full max-w-md rounded-3xl bg-white/10 p-6 shadow-xl shadow-black/20">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">{mode === "login" ? "Login" : "Create Account"}</h2>
+            <p className="text-gray-400 mt-1">
+              {mode === "login"
+                ? "Enter your credentials to access the dashboard."
+                : "Create a secure account to manage your inventory."}
+            </p>
+          </div>
+          <div className="flex gap-2 rounded-full bg-slate-900/70 p-1">
+            <button
+              type="button"
+              className={`rounded-full px-3 py-1 text-sm ${mode === "login" ? "bg-cyan-400 text-slate-950" : "text-gray-300 hover:text-white"}`}
+              onClick={() => setMode("login")}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              className={`rounded-full px-3 py-1 text-sm ${mode === "signup" ? "bg-violet-500 text-white" : "text-gray-300 hover:text-white"}`}
+              onClick={() => setMode("signup")}
+            >
+              Sign Up
+            </button>
+          </div>
+        </div>
 
         {message && (
-          <div className="rounded-xl bg-red-500/10 p-3 text-sm text-red-100">
+          <div className={`mb-4 rounded-xl p-3 text-sm ${messageType === "error" ? "bg-red-500/10 text-red-100" : "bg-emerald-500/10 text-emerald-100"}`}>
             {message}
           </div>
         )}
 
-        <input
-          className="w-full p-2 bg-white/10 rounded"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <div className="space-y-3">
+          <input
+            className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-        <input
-          type="password"
-          className="w-full p-2 bg-white/10 rounded"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            type="password"
+            className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-        <button
-          onClick={login}
-          className="w-full bg-blue-600 p-2 rounded"
-          disabled={loading}
-        >
-          {loading ? "Signing in..." : "Login"}
-        </button>
+          {mode === "signup" && (
+            <input
+              type="password"
+              className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400"
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          )}
 
-        <button
-          onClick={signup}
-          className="w-full bg-green-600 p-2 rounded"
-          disabled={loading}
-        >
-          Create Account
-        </button>
+          <button
+            type="button"
+            onClick={mode === "login" ? login : signup}
+            className="w-full rounded-2xl bg-linear-to-r from-cyan-500 to-blue-600 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90 disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? (mode === "login" ? "Signing in..." : "Creating account...") : mode === "login" ? "Login" : "Sign Up"}
+          </button>
+        </div>
       </div>
     </div>
   );

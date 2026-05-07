@@ -10,7 +10,6 @@ type Props = {
 };
 
 export default function DashboardShell({ children, initialPage }: Props) {
-  const [page, setPage] = useState(initialPage || "dashboard");
   const [dark, setDark] = useState(true);
 
   return (
@@ -19,7 +18,7 @@ export default function DashboardShell({ children, initialPage }: Props) {
         dark ? "bg-slate-950 text-slate-100" : "bg-slate-100 text-slate-950"
       }`}
     >
-      <Sidebar page={page} setPage={setPage} dark={dark} setDark={setDark} />
+      <Sidebar dark={dark} setDark={setDark} />
       <main className="flex-1 p-4 sm:p-6">{children}</main>
     </div>
   );

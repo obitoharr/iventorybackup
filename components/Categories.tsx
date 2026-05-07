@@ -97,8 +97,8 @@ export default function Categories({
         </div>
       ) : (
         <ul className="mt-6 space-y-2">
-          {categories.map((c: string) => (
-            <li key={c} className="bg-white/10 p-3 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {categories.map((c: string, index: number) => (
+            <li key={`${c}-${index}`} className="bg-white/10 p-3 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               {editing === c ? (
                 <div className="flex-1">
                   <input

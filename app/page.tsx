@@ -1,27 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Dashboard from "../components/Dashboard";
-import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function Page() {
   const [dark, setDark] = useState(true);
+  const { loading } = useRequireAuth();
 
-  const router = useRouter();
-
-  // ================= AUTH PROTECTION =================
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data.user) {
-        router.push("/login");
-      }
-    };
-
-    checkUser();
-  }, [router]);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+        <p>Checking authentication...</p>
+      </div>
+    );
+  }
 
   const theme = dark
     ? "bg-slate-950 text-slate-100"

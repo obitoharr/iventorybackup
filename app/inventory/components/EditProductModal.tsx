@@ -74,8 +74,8 @@ export default function EditProductModal({
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
+            {categories.map((cat, index) => (
+              <option key={`${cat}-${index}`} value={cat}>
                 {cat}
               </option>
             ))}
@@ -93,6 +93,7 @@ export default function EditProductModal({
             onChange={(e) => setPrice(Number(e.target.value))}
           />
         </label>
+
 
         {error && <p className="mb-4 text-sm text-red-300">{error}</p>}
 

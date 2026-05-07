@@ -3,7 +3,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { logout } from "@/hooks/useRequireAuth";
 import {
   LayoutDashboard,
   Package,
@@ -12,6 +13,7 @@ import {
   FileText,
   Moon,
   Sun,
+  User,
   Building2,
   Menu,
   X,
@@ -25,9 +27,19 @@ type Props = {
 
 export default function Sidebar({ dark, setDark }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
 
   const [collapsed, setCollapsed] = useState(false);
   const [open, setOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    router.push("/login");
+  };
 
   const navClass = (active: boolean) =>
     `w-full text-left px-2 py-3 rounded-xl transition flex items-center gap-3 ${
@@ -142,15 +154,32 @@ export default function Sidebar({ dark, setDark }: Props) {
             <FileText size={20} />
             {!collapsed && <span>Reports</span>}
           </Link>
+
+          <Link
+            href="/profile"
+            onClick={() => setOpen(false)}
+            className={navClass(pathname === "/profile")}
+          >
+            <User size={20} />
+            {!collapsed && <span>Profile</span>}
+          </Link>
         </div>
 
         {/* THEME */}
         <button
           onClick={() => setDark(!dark)}
-          className="mt-6 w-full bg-gradient-to-r from-purple-500 to-indigo-500 py-2 rounded-xl flex items-center justify-center gap-2"
+          className="mt-6 w-full bg-linear-to-r from-purple-500 to-indigo-500 py-2 rounded-xl flex items-center justify-center gap-2"
         >
           {dark ? <Sun size={20} /> : <Moon size={20} />}
           {!collapsed && <span>Toggle Theme</span>}
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="mt-3 w-full bg-red-600 py-2 rounded-xl flex items-center justify-center gap-2"
+        >
+          <X size={20} />
+          {!collapsed && <span>Logout</span>}
         </button>
       </div>
     </>

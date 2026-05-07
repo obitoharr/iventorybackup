@@ -32,6 +32,13 @@ type InventoryProps = {
   confirmSell: () => void;
   sellProducts: (items: BulkSaleItem[]) => Promise<boolean>;
   addProduct: (product: ProductForm) => Promise<boolean>;
+  
+  // Pagination
+  currentPage: number;
+  totalCount: number;
+  itemsPerPage: number;
+  totalPages: number;
+  setCurrentPage: (page: number) => void;
 };
 
 export default function Inventory(props: InventoryProps) {
@@ -50,12 +57,18 @@ export default function Inventory(props: InventoryProps) {
     confirmSell,
     sellProducts,
     addProduct,
+    currentPage,
+    totalCount,
+    itemsPerPage,
+    totalPages,
+    setCurrentPage,
   } = props;
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState(categories?.[0] ?? "");
   const [price, setPrice] = useState(0);
   const [stock, setStock] = useState(0);
+  const [note, setNote] = useState("");
 
   const [editItem, setEditItem] = useState<Product | null>(null);
   const [restockItem, setRestockItem] = useState<Product | null>(null);
@@ -102,12 +115,14 @@ export default function Inventory(props: InventoryProps) {
       category,
       price,
       stock,
+      notes: note.trim() || undefined,
     });
 
     if (success) {
       setName("");
       setPrice(0);
       setStock(0);
+      setNote("");
       showMessage("success", "Product added successfully");
     } else {
       showMessage("error", "Failed to add product");
@@ -229,6 +244,8 @@ export default function Inventory(props: InventoryProps) {
           setPrice={setPrice}
           stock={stock}
           setStock={setStock}
+          notes={note}
+          setNotes={setNote}
           categories={categories}
           addProductHandler={addProductHandler}
         />
@@ -247,6 +264,49 @@ export default function Inventory(props: InventoryProps) {
           />
         </div>
       </section>
+
+      {/* PAGINATION */}
+      {totalCount > 0 && (
+        <section className="flex items-center justify-between gap-4">
+          <div className="text-sm text-gray-400">
+            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} products
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-2">
+              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                const page = i + 1;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`rounded-lg px-3 py-2 text-sm ${
+                      currentPage === page
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-800 text-white hover:bg-slate-700"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* MODALS */}
       <SellModal

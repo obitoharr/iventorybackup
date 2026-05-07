@@ -1,27 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Categories from "@/components/Categories";
 import { useInventory } from "@/hooks/useInventory";
-import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 export default function CategoriesPage() {
   const inventory = useInventory();
   const [dark, setDark] = useState(true);
-  const router = useRouter();
+  const { loading } = useRequireAuth();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data.user) {
-        router.push("/login");
-      }
-    };
-
-    checkUser();
-  }, [router]);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+        <p>Checking authentication...</p>
+      </div>
+    );
+  }
 
   const theme = dark
     ? "bg-slate-950 text-slate-100"

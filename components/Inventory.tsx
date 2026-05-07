@@ -84,8 +84,8 @@ export default function Inventory({ products, setProducts, categories }: any) {
           onChange={(e) => setForm({ ...form, category: e.target.value })}
         >
           <option>Select Category</option>
-          {categories.map((c: string) => (
-            <option key={c}>{c}</option>
+          {categories.map((c: string, index: number) => (
+            <option key={`${c}-${index}`}>{c}</option>
           ))}
         </select>
       </div>
@@ -191,8 +191,8 @@ export default function Inventory({ products, setProducts, categories }: any) {
               onChange={(e) => setForm({ ...form, category: e.target.value })}
             >
               <option>Select Category</option>
-              {categories.map((c: string) => (
-                <option key={c}>{c}</option>
+              {categories.map((c: string, index: number) => (
+                <option key={`${c}-${index}`}>{c}</option>
               ))}
             </select>
 

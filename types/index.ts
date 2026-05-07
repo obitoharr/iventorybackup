@@ -9,6 +9,7 @@ export const ProductSchema = z.object({
   price: z.number().positive('Price must be positive').max(999999, 'Price too high'),
   stock: z.number().int().min(0, 'Stock cannot be negative'),
   user_id: z.string().uuid().optional(),
+  notes: z.string().max(500, 'Notes too long').optional(),
 });
 
 export const SaleSchema = z.object({

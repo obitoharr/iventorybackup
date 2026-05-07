@@ -1,6 +1,9 @@
+//app/hooks/useInventory.ts
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+// COPILOT_MARKER
 import { supabase } from "@/lib/supabase";
 import {
   BulkSaleItem,
@@ -13,6 +16,11 @@ import {
   CategorySchema,
 } from "../types";
 
+const formatZodError = (issues: any[]) =>
+  issues
+    .map((issue) => `${issue.path?.join?.(".") || "input"}: ${issue.message}`)
+    .join(", ");
+
 const ProductFormSchema = ProductSchema.omit({ id: true, user_id: true });
 const ProductUpdateSchema = ProductSchema.partial().omit({ id: true, user_id: true }).refine(
   (data) => Object.keys(data).length > 0,
@@ -22,115 +30,130 @@ const ProductUpdateSchema = ProductSchema.partial().omit({ id: true, user_id: tr
 );
 
 export function useInventory() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [loading, setLoading] = useState<LoadingState>({
-    isLoading: true,
-    error: null,
-  });
-
+  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
   const [sellItem, setSellItem] = useState<Product | null>(null);
   const [sellQty, setSellQty] = useState(1);
+  const queryClient = useQueryClient();
 
-  // ================= FETCH =================
-  const fetchData = useCallback(async () => {
-    setLoading({ isLoading: true, error: null });
+  const authUser = async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      throw new Error("Authentication required");
+    }
+    return data.user;
+  };
 
-    try {
-      const { data: products, error: productsError } = await supabase
+  // ================= FETCH PRODUCTS WITH PAGINATION =================
+  const {
+    data: productsData,
+    isLoading: productsLoading,
+    error: productsError,
+  } = useQuery({
+    queryKey: ["products", currentPage],
+    queryFn: async () => {
+      const user = await authUser();
+      const offset = (currentPage - 1) * itemsPerPage;
+
+      const { data: products, error: productsError, count: productsCount } = await supabase
         .from("products")
-        .select("*");
+        .select("*", { count: "exact" })
+        .eq("user_id", user.id)
+        .range(offset, offset + itemsPerPage - 1)
+        .order("created_at", { ascending: false });
+
+      if (productsError) throw new Error(productsError.message);
+
+      return {
+        products: products || [],
+        count: productsCount || 0,
+      };
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // ================= FETCH SALES =================
+// SALES_MARKER
+  const {
+    data: salesData,
+    isLoading: salesLoading,
+    error: salesError,
+  } = useQuery({
+    queryKey: ["sales"],
+    queryFn: async () => {
+      const user = await authUser();
+
       const { data: sales, error: salesError } = await supabase
         .from("sales")
-        .select("*");
+        .select("id, product_id, product_name, quantity, total, created_at, user_id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (salesError) throw new Error(salesError.message);
+      return sales || [];
+    },
+    // SALES_QUERY_MARKER
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // ================= FETCH CATEGORIES =================
+  const {
+    data: categoriesData,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const user = await authUser();
+
       const { data: categories, error: categoriesError } = await supabase
         .from("categories")
-        .select("*");
+        .select("name")
+        .eq("user_id", user.id);
 
-      const fetchError =
-        productsError?.message || salesError?.message || categoriesError?.message || null;
-
-      setProducts(products || []);
-      setSales(sales || []);
-      setCategories(categories?.map((c) => c.name) || []);
-      setLoading({ isLoading: false, error: fetchError });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unexpected error fetching data";
-      setProducts([]);
-      setSales([]);
-      setCategories([]);
-      setLoading({ isLoading: false, error: message });
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const formatZodError = (issues: { message: string }[]) =>
-    issues.map((issue) => issue.message).join(", ");
-
-  const authUser = useCallback(async () => {
-    const { data: userData, error: authError } = await supabase.auth.getUser();
-    const user = userData?.user;
-
-    if (authError || !user) {
-      setLoading({ isLoading: false, error: "Authentication required" });
-      return null;
-    }
-
-    return user;
-  }, []);
-
-  const handleMutationError = useCallback(
-    (error: string) => {
-      setLoading({ isLoading: false, error });
-      return false;
+      if (categoriesError) throw new Error(categoriesError.message);
+      return categories?.map((c) => c.name) || [];
     },
-    []
-  );
+    staleTime: 1000 * 60 * 5,
+  });
 
-  // ================= ADD PRODUCT =================
-  const addProduct = useCallback(
-    async (product: ProductForm): Promise<boolean> => {
+  // ================= ADD PRODUCT MUTATION =================
+  const addProductMutation = useMutation({
+    mutationFn: async (product: ProductForm) => {
       const parseResult = ProductFormSchema.safeParse(product);
       if (!parseResult.success) {
-        return handleMutationError(formatZodError(parseResult.error.issues));
+        throw new Error(formatZodError(parseResult.error.issues));
       }
 
       const user = await authUser();
-      if (!user) return false;
 
       const { error } = await supabase.from("products").insert({
         ...product,
         user_id: user.id,
       });
 
-      if (!error) {
-        await fetchData();
-        return true;
-      }
-
-      return handleMutationError(error.message);
+      if (error) throw new Error(error.message);
     },
-    [authUser, fetchData, handleMutationError]
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setCurrentPage(1);
+    },
+  });
 
-  // ================= UPDATE =================
-  const updateProduct = useCallback(
-    async (id: string, updates: Partial<ProductForm>): Promise<boolean> => {
+  // ================= UPDATE PRODUCT MUTATION =================
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<ProductForm> }) => {
       if (Object.keys(updates).length === 0) {
-        return handleMutationError("No changes provided");
+        throw new Error("No changes provided");
       }
 
       const parseResult = ProductUpdateSchema.safeParse(updates);
       if (!parseResult.success) {
-        return handleMutationError(formatZodError(parseResult.error.issues));
+        throw new Error(formatZodError(parseResult.error.issues));
       }
 
       const user = await authUser();
-      if (!user) return false;
 
       const { data: product, error: productError } = await supabase
         .from("products")
@@ -139,11 +162,11 @@ export function useInventory() {
         .single();
 
       if (productError || !product) {
-        return handleMutationError("Product not found");
+        throw new Error("Product not found");
       }
 
       if (product.user_id !== user.id) {
-        return handleMutationError("You can only edit products you own");
+        throw new Error("You can only edit products you own");
       }
 
       const { error } = await supabase
@@ -152,21 +175,17 @@ export function useInventory() {
         .eq("id", id)
         .eq("user_id", user.id);
 
-      if (!error) {
-        await fetchData();
-        return true;
-      }
-
-      return handleMutationError(error.message);
+      if (error) throw new Error(error.message);
     },
-    [authUser, fetchData, handleMutationError]
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
 
-  // ================= DELETE =================
-  const deleteProduct = useCallback(
-    async (id: string): Promise<boolean> => {
+  // ================= DELETE PRODUCT MUTATION =================
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id: string) => {
       const user = await authUser();
-      if (!user) return false;
 
       const { data: product, error: productError } = await supabase
         .from("products")
@@ -175,11 +194,11 @@ export function useInventory() {
         .single();
 
       if (productError || !product) {
-        return handleMutationError("Product not found");
+        throw new Error("Product not found");
       }
 
       if (product.user_id !== user.id) {
-        return handleMutationError("You can only delete products you own");
+        throw new Error("You can only delete products you own");
       }
 
       const { error } = await supabase
@@ -188,30 +207,26 @@ export function useInventory() {
         .eq("id", id)
         .eq("user_id", user.id);
 
-      if (!error) {
-        await fetchData();
-        return true;
-      }
-
-      return handleMutationError(error.message);
+      if (error) throw new Error(error.message);
     },
-    [authUser, fetchData, handleMutationError]
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setCurrentPage(1);
+    },
+  });
 
-  // ================= RESTOCK =================
-  const restockProduct = useCallback(
-    async (id: string, amount: number): Promise<boolean> => {
+  // ================= RESTOCK PRODUCT MUTATION =================
+  const restockProductMutation = useMutation({
+    mutationFn: async ({ id, amount }: { id: string; amount: number }) => {
       if (amount <= 0) {
-        return handleMutationError("Restock amount must be greater than zero");
+        throw new Error("Restock amount must be greater than zero");
       }
 
+      const products = productsData?.products || [];
       const product = products.find((p) => p.id === id);
       if (!product) {
-        return handleMutationError("Product not found");
+        throw new Error("Product not found");
       }
-
-      const user = await authUser();
-      if (!user) return false;
 
       const { data, error } = await supabase
         .from("products")
@@ -219,30 +234,29 @@ export function useInventory() {
         .eq("id", id)
         .select();
 
-      if (!error && data?.length) {
-        await fetchData();
-        return true;
+      if (error || !data?.length) {
+        throw new Error(error?.message || "Failed to update stock");
       }
-
-      return handleMutationError(error?.message || "Failed to update stock");
     },
-    [products, authUser, fetchData, handleMutationError]
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
 
-  // ================= SELL =================
-  const sellProduct = useCallback(
-    async (productId: string, quantity: number): Promise<boolean> => {
+  // ================= SELL PRODUCT MUTATION =================
+  const sellProductMutation = useMutation({
+    mutationFn: async ({ productId, quantity }: { productId: string; quantity: number }) => {
       if (quantity <= 0) {
-        return handleMutationError("Sale quantity must be at least 1");
+        throw new Error("Sale quantity must be at least 1");
       }
 
+      const products = productsData?.products || [];
       const product = products.find((p) => p.id === productId);
       if (!product) {
-        return handleMutationError("Product not found");
+        throw new Error("Product not found");
       }
 
       const user = await authUser();
-      if (!user) return false;
 
       const { data: updatedProducts, error: updateError } = await supabase
         .from("products")
@@ -252,11 +266,11 @@ export function useInventory() {
         .select();
 
       if (updateError) {
-        return handleMutationError(updateError.message);
+        throw new Error(updateError.message);
       }
 
       if (!updatedProducts?.length) {
-        return handleMutationError("Insufficient stock for this sale");
+        throw new Error("Insufficient stock for this sale");
       }
 
       const { error: saleError } = await supabase.from("sales").insert({
@@ -272,17 +286,18 @@ export function useInventory() {
           .from("products")
           .update({ stock: product.stock })
           .eq("id", productId);
-        return handleMutationError(saleError.message);
+        throw new Error(saleError.message);
       }
-
-      await fetchData();
-      return true;
     },
-    [products, authUser, fetchData, handleMutationError]
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+    },
+  });
 
-  const sellProducts = useCallback(
-    async (items: BulkSaleItem[]): Promise<boolean> => {
+  // ================= BULK SELL MUTATION =================
+  const sellProductsMutation = useMutation({
+    mutationFn: async (items: BulkSaleItem[]) => {
       const normalizedItems = items.reduce((acc, item) => {
         const existing = acc.find((entry) => entry.productId === item.productId);
         if (existing) {
@@ -294,22 +309,21 @@ export function useInventory() {
       }, [] as BulkSaleItem[]);
 
       if (normalizedItems.length === 0) {
-        return handleMutationError("No items selected for sale");
+        throw new Error("No items selected for sale");
       }
 
       const user = await authUser();
-      if (!user) return false;
-
+      const products = productsData?.products || [];
       const rollbackStack: Array<{ id: string; stock: number }> = [];
 
       for (const item of normalizedItems) {
         if (item.quantity <= 0) {
-          return handleMutationError("Sale quantities must be greater than zero");
+          throw new Error("Sale quantities must be greater than zero");
         }
 
         const product = products.find((p) => p.id === item.productId);
         if (!product) {
-          return handleMutationError(`Product not found: ${item.productId}`);
+          throw new Error(`Product not found: ${item.productId}`);
         }
 
         const { data: updatedProducts, error: updateError } = await supabase
@@ -323,14 +337,14 @@ export function useInventory() {
           for (const rollback of rollbackStack) {
             await supabase.from("products").update({ stock: rollback.stock }).eq("id", rollback.id);
           }
-          return handleMutationError(updateError.message);
+          throw new Error(updateError.message);
         }
 
         if (!updatedProducts?.length) {
           for (const rollback of rollbackStack) {
             await supabase.from("products").update({ stock: rollback.stock }).eq("id", rollback.id);
           }
-          return handleMutationError(`Insufficient stock for ${product.name}`);
+          throw new Error(`Insufficient stock for ${product.name}`);
         }
 
         rollbackStack.push({ id: product.id, stock: product.stock });
@@ -352,14 +366,102 @@ export function useInventory() {
         for (const rollback of rollbackStack) {
           await supabase.from("products").update({ stock: rollback.stock }).eq("id", rollback.id);
         }
-        return handleMutationError(saleError.message);
+        throw new Error(saleError.message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      setCurrentPage(1);
+    },
+  });
+
+  // ================= ADD CATEGORY MUTATION =================
+  const addCategoryMutation = useMutation({
+    mutationFn: async (name: Category) => {
+      const parseResult = CategorySchema.safeParse(name);
+      if (!parseResult.success) {
+        throw new Error(formatZodError(parseResult.error.issues));
       }
 
-      await fetchData();
-      return true;
+      const categories = categoriesData || [];
+      if (categories.includes(name)) {
+        throw new Error("Category already exists");
+      }
+
+      const user = await authUser();
+
+      const { error } = await supabase.from("categories").insert({
+        name,
+        user_id: user.id,
+      });
+
+      if (error) throw new Error(error.message);
     },
-    [products, authUser, fetchData, handleMutationError]
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+
+  // ================= UPDATE CATEGORY MUTATION =================
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ oldName, newName }: { oldName: Category; newName: Category }) => {
+      const parseResult = CategorySchema.safeParse(newName);
+      if (!parseResult.success) {
+        throw new Error(formatZodError(parseResult.error.issues));
+      }
+
+      if (oldName === newName) {
+        return;
+      }
+
+      const categories = categoriesData || [];
+      if (categories.includes(newName)) {
+        throw new Error("Category already exists");
+      }
+
+      const user = await authUser();
+
+      const { error } = await supabase
+        .from("categories")
+        .update({ name: newName })
+        .eq("name", oldName)
+        .eq("user_id", user.id);
+
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+
+  // ================= DELETE CATEGORY MUTATION =================
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (name: Category) => {
+      const user = await authUser();
+
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("name", name)
+        .eq("user_id", user.id);
+
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+
+  // ================= HELPERS =================
+  const getProductById = (id: string) =>
+    (productsData?.products || []).find((p) => p.id === id);
+
+  const getLowStockProducts = () =>
+    (productsData?.products || []).filter((p) => p.stock > 0 && p.stock < 10);
+
+  const getOutOfStockProducts = () =>
+    (productsData?.products || []).filter((p) => p.stock === 0);
 
   // ================= SELL FLOW =================
   const openSell = (product: Product) => {
@@ -369,118 +471,125 @@ export function useInventory() {
 
   const confirmSell = async (): Promise<boolean> => {
     if (!sellItem) return false;
-    const success = await sellProduct(sellItem.id, sellQty);
-    if (success) {
+    try {
+      await sellProductMutation.mutateAsync({ productId: sellItem.id, quantity: sellQty });
       setSellItem(null);
       setSellQty(1);
+      return true;
+    } catch {
+      return false;
     }
-    return success;
   };
 
-  // ================= CATEGORY =================
-  const addCategory = useCallback(
-    async (name: Category): Promise<boolean> => {
-      const parseResult = CategorySchema.safeParse(name);
-      if (!parseResult.success) {
-        return handleMutationError(formatZodError(parseResult.error.issues));
-      }
+  // ================= COMPATIBILITY WRAPPERS =================
+  const addProduct = async (product: ProductForm): Promise<boolean> => {
+    try {
+      await addProductMutation.mutateAsync(product);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      if (categories.includes(name)) {
-        return handleMutationError("Category already exists");
-      }
+  const updateProduct = async (id: string, updates: Partial<ProductForm>): Promise<boolean> => {
+    try {
+      await updateProductMutation.mutateAsync({ id, updates });
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      const user = await authUser();
-      if (!user) return false;
+  const deleteProduct = async (id: string): Promise<boolean> => {
+    try {
+      await deleteProductMutation.mutateAsync(id);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      const { error } = await supabase.from("categories").insert({
-        name,
-        user_id: user.id,
-      });
+  const restockProduct = async (id: string, amount: number): Promise<boolean> => {
+    try {
+      await restockProductMutation.mutateAsync({ id, amount });
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      if (!error) {
-        await fetchData();
-        return true;
-      }
+  const sellProduct = async (productId: string, quantity: number): Promise<boolean> => {
+    try {
+      await sellProductMutation.mutateAsync({ productId, quantity });
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      return handleMutationError(error.message);
-    },
-    [authUser, categories, fetchData, handleMutationError]
-  );
+  const sellProducts = async (items: BulkSaleItem[]): Promise<boolean> => {
+    try {
+      await sellProductsMutation.mutateAsync(items);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-  const updateCategory = useCallback(
-    async (oldName: Category, newName: Category): Promise<boolean> => {
-      const parseResult = CategorySchema.safeParse(newName);
-      if (!parseResult.success) {
-        return handleMutationError(formatZodError(parseResult.error.issues));
-      }
+  const addCategory = async (name: Category): Promise<boolean> => {
+    try {
+      await addCategoryMutation.mutateAsync(name);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      if (oldName === newName) {
-        return true;
-      }
+  const updateCategory = async (oldName: Category, newName: Category): Promise<boolean> => {
+    try {
+      await updateCategoryMutation.mutateAsync({ oldName, newName });
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-      if (categories.includes(newName)) {
-        return handleMutationError("Category already exists");
-      }
-
-      const user = await authUser();
-      if (!user) return false;
-
-      const { error } = await supabase
-        .from("categories")
-        .update({ name: newName })
-        .eq("name", oldName)
-        .eq("user_id", user.id);
-
-      if (!error) {
-        await fetchData();
-        return true;
-      }
-
-      return handleMutationError(error.message);
-    },
-    [authUser, categories, fetchData, handleMutationError]
-  );
-
-  const deleteCategory = useCallback(
-    async (name: Category): Promise<boolean> => {
-      const user = await authUser();
-      if (!user) return false;
-
-      const { error } = await supabase
-        .from("categories")
-        .delete()
-        .eq("name", name)
-        .eq("user_id", user.id);
-
-      if (!error) {
-        await fetchData();
-        return true;
-      }
-
-      return handleMutationError(error.message);
-    },
-    [authUser, fetchData, handleMutationError]
-  );
+  const deleteCategory = async (name: Category): Promise<boolean> => {
+    try {
+      await deleteCategoryMutation.mutateAsync(name);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const updateCategories = (newCategories: Category[]) => {
-    setCategories(newCategories);
+    // No-op for compatibility; categories are managed via server mutations
   };
 
-  // ================= HELPERS =================
-  const getProductById = (id: string) =>
-    products.find((p) => p.id === id);
-
-  const getLowStockProducts = () =>
-    products.filter((p) => p.stock > 0 && p.stock < 10);
-
-  const getOutOfStockProducts = () =>
-    products.filter((p) => p.stock === 0);
+  // ================= LOADING STATE =================
+  const loading: LoadingState = {
+    isLoading:
+      productsLoading || salesLoading || categoriesLoading,
+    error:
+      (productsError?.message) ||
+      (salesError?.message) ||
+      (categoriesError?.message) ||
+      null,
+  };
 
   return {
-    products,
-    categories,
-    sales,
+    products: productsData?.products || [],
+    categories: categoriesData || [],
+    sales: salesData || [],
     loading,
+
+    // Pagination
+    currentPage,
+    totalCount: productsData?.count || 0,
+    itemsPerPage,
+    setCurrentPage,
+    totalPages: Math.ceil((productsData?.count || 0) / itemsPerPage),
 
     addProduct,
     updateProduct,
@@ -503,6 +612,6 @@ export function useInventory() {
     setSellQty,
     setSellItem,
     openSell,
-    confirmSell,   // returns boolean
+    confirmSell,
   };
 }

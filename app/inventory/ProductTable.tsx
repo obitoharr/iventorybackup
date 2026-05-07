@@ -27,6 +27,7 @@ export default function ProductTable({
             <th className="p-3 text-left">Category</th>
             <th className="p-3 text-left">Price</th>
             <th className="p-3 text-left">Stock</th>
+            <th className="p-3 text-left">Notes</th>
             <th className="p-3 text-left">Actions</th>
           </tr>
         </thead>
@@ -34,7 +35,7 @@ export default function ProductTable({
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={5} className="p-8 text-center text-gray-400">
+              <td colSpan={6} className="p-8 text-center text-gray-400">
                 <div className="inline-flex items-center gap-2">
                   <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                   Loading products...
@@ -43,7 +44,7 @@ export default function ProductTable({
             </tr>
           ) : products.length === 0 ? (
             <tr>
-              <td colSpan={5} className="p-6 text-center text-gray-400">
+              <td colSpan={6} className="p-6 text-center text-gray-400">
                 No inventory items found.
               </td>
             </tr>
@@ -55,6 +56,9 @@ export default function ProductTable({
                 <td className="p-3 whitespace-nowrap">{p.category}</td>
                 <td className="p-3 whitespace-nowrap">${p.price}</td>
                 <td className="p-3 whitespace-nowrap">{p.stock}</td>
+                <td className="p-3 max-w-xs text-ellipsis overflow-hidden whitespace-nowrap">
+                  {p.notes ? (p.notes.length > 40 ? `${p.notes.slice(0, 40)}...` : p.notes) : "—"}
+                </td>
 
                 <td className="p-3 flex flex-wrap gap-2">
 
