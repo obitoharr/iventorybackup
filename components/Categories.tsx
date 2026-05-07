@@ -1,4 +1,4 @@
-//app/components/Categories.tsx
+// app/components/Categories.tsx
 "use client";
 
 import { useState } from "react";
@@ -75,7 +75,7 @@ export default function Categories({
         <input
           className="input"
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChange={(e) => setName(e.target.value)}
           placeholder="New category"
           disabled={loading}
         />
@@ -91,14 +91,17 @@ export default function Categories({
             Loading categories...
           </span>
         </div>
-      ) : categories.length === 0 ? (
+      ) : categories?.length === 0 ? (
         <div className="mt-6 p-6 rounded-2xl bg-white/5 text-center text-gray-400">
           No categories yet.
         </div>
       ) : (
         <ul className="mt-6 space-y-2">
-          {categories.map((c: string, index: number) => (
-            <li key={`${c}-${index}`} className="bg-white/10 p-3 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {categories?.map((c: string, index: number) => (
+            <li
+              key={`${c}-${index}`}
+              className="bg-white/10 p-3 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+            >
               {editing === c ? (
                 <div className="flex-1">
                   <input
@@ -116,19 +119,32 @@ export default function Categories({
               <div className="flex gap-2">
                 {editing === c ? (
                   <>
-                    <button onClick={saveEdit} className="btn-primary" disabled={loading}>
+                    <button
+                      onClick={saveEdit}
+                      className="btn-primary"
+                      disabled={loading}
+                    >
                       Save
                     </button>
-                    <button onClick={cancelEdit} className="btn-secondary">
+                    <button
+                      onClick={cancelEdit}
+                      className="btn-secondary"
+                    >
                       Cancel
                     </button>
                   </>
                 ) : (
                   <>
-                    <button onClick={() => startEdit(c)} className="btn-secondary">
+                    <button
+                      onClick={() => startEdit(c)}
+                      className="btn-secondary"
+                    >
                       Edit
                     </button>
-                    <button onClick={() => remove(c)} className="btn-danger">
+                    <button
+                      onClick={() => remove(c)}
+                      className="btn-danger"
+                    >
                       Delete
                     </button>
                   </>
