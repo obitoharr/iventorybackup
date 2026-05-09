@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 // COPILOT_MARKER
 import { supabase } from "@/lib/supabase";
+import { getTenantContext } from "@/lib/tenant";
 import {
   BulkSaleItem,
   Product,
@@ -36,14 +37,6 @@ export function useInventory() {
   const [sellQty, setSellQty] = useState(1);
   const queryClient = useQueryClient();
 
-  const authUser = async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
-      throw new Error("Authentication required");
-    }
-    return data.user;
-  };
-
   // ================= FETCH PRODUCTS WITH PAGINATION =================
   const {
     data: productsData,
@@ -52,13 +45,13 @@ export function useInventory() {
   } = useQuery({
     queryKey: ["products", currentPage],
     queryFn: async () => {
-      const user = await authUser();
+      const tenant = await getTenantContext();
       const offset = (currentPage - 1) * itemsPerPage;
 
       const { data: products, error: productsError, count: productsCount } = await supabase
         .from("products")
         .select("*", { count: "exact" })
-        .eq("user_id", user.id)
+        .eq("tenant_id", tenant.tenant_id)
         .range(offset, offset + itemsPerPage - 1)
         .order("created_at", { ascending: false });
 
@@ -81,12 +74,12 @@ export function useInventory() {
   } = useQuery({
     queryKey: ["sales"],
     queryFn: async () => {
-      const user = await authUser();
+      const tenant = await getTenantContext();
 
       const { data: sales, error: salesError } = await supabase
         .from("sales")
         .select("id, product_id, product_name, quantity, total, created_at, user_id")
-        .eq("user_id", user.id)
+        .eq("tenant_id", tenant.tenant_id)
         .order("created_at", { ascending: false })
         .limit(200);
 
@@ -105,12 +98,12 @@ export function useInventory() {
   } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
-      const user = await authUser();
+      const tenant = await getTenantContext();
 
       const { data: categories, error: categoriesError } = await supabase
         .from("categories")
         .select("name")
-        .eq("user_id", user.id);
+        .eq("tenant_id", tenant.tenant_id);
 
       if (categoriesError) throw new Error(categoriesError.message);
       return categories?.map((c) => c.name) || [];
@@ -126,11 +119,13 @@ export function useInventory() {
         throw new Error(formatZodError(parseResult.error.issues));
       }
 
-      const user = await authUser();
+      const tenant = await getTenantContext();
 
       const { error } = await supabase.from("products").insert({
         ...product,
-        user_id: user.id,
+        tenant_id: tenant.tenant_id,
+        user_id: tenant.user_id,
+        created_by: tenant.user_id,
       });
 
       if (error) throw new Error(error.message);
@@ -153,11 +148,11 @@ export function useInventory() {
         throw new Error(formatZodError(parseResult.error.issues));
       }
 
-      const user = await authUser();
+      const tenant = await getTenantContext();
 
       const { data: product, error: productError } = await supabase
         .from("products")
-        .select("user_id")
+        .select("tenant_id")
         .eq("id", id)
         .single();
 
@@ -165,15 +160,15 @@ export function useInventory() {
         throw new Error("Product not found");
       }
 
-      if (product.user_id !== user.id) {
-        throw new Error("You can only edit products you own");
+      if (product.tenant_id !== tenant.tenant_id) {
+        throw new Error("You do not have permission to edit this product");
       }
 
       const { error } = await supabase
         .from("products")
         .update(updates)
         .eq("id", id)
-        .eq("user_id", user.id);
+        .eq("tenant_id", tenant.tenant_id);
 
       if (error) throw new Error(error.message);
     },
@@ -185,11 +180,11 @@ export function useInventory() {
   // ================= DELETE PRODUCT MUTATION =================
   const deleteProductMutation = useMutation({
     mutationFn: async (id: string) => {
-      const user = await authUser();
+      const tenant = await getTenantContext();
 
       const { data: product, error: productError } = await supabase
         .from("products")
-        .select("user_id")
+        .select("tenant_id")
         .eq("id", id)
         .single();
 
@@ -197,15 +192,15 @@ export function useInventory() {
         throw new Error("Product not found");
       }
 
-      if (product.user_id !== user.id) {
-        throw new Error("You can only delete products you own");
+      if (product.tenant_id !== tenant.tenant_id) {
+        throw new Error("You do not have permission to delete this product");
       }
 
       const { error } = await supabase
         .from("products")
         .delete()
         .eq("id", id)
-        .eq("user_id", user.id);
+        .eq("tenant_id", tenant.tenant_id);
 
       if (error) throw new Error(error.message);
     },
@@ -228,10 +223,13 @@ export function useInventory() {
         throw new Error("Product not found");
       }
 
+      const tenant = await getTenantContext();
+
       const { data, error } = await supabase
         .from("products")
         .update({ stock: product.stock + amount })
         .eq("id", id)
+        .eq("tenant_id", tenant.tenant_id)
         .select();
 
       if (error || !data?.length) {
@@ -256,12 +254,13 @@ export function useInventory() {
         throw new Error("Product not found");
       }
 
-      const user = await authUser();
+      const tenant = await getTenantContext();
 
       const { data: updatedProducts, error: updateError } = await supabase
         .from("products")
         .update({ stock: product.stock - quantity })
         .eq("id", productId)
+        .eq("tenant_id", tenant.tenant_id)
         .gte("stock", quantity)
         .select();
 
@@ -278,7 +277,9 @@ export function useInventory() {
         product_name: product.name,
         quantity,
         total: quantity * product.price,
-        user_id: user.id,
+        tenant_id: tenant.tenant_id,
+        user_id: tenant.user_id,
+        created_by: tenant.user_id,
       });
 
       if (saleError) {
@@ -312,7 +313,7 @@ export function useInventory() {
         throw new Error("No items selected for sale");
       }
 
-      const user = await authUser();
+      const tenant = await getTenantContext();
       const products = productsData?.products || [];
       const rollbackStack: Array<{ id: string; stock: number }> = [];
 
@@ -330,6 +331,7 @@ export function useInventory() {
           .from("products")
           .update({ stock: product.stock - item.quantity })
           .eq("id", item.productId)
+          .eq("tenant_id", tenant.tenant_id)
           .gte("stock", item.quantity)
           .select();
 
@@ -357,7 +359,9 @@ export function useInventory() {
           product_name: product.name,
           quantity: item.quantity,
           total: item.quantity * product.price,
-          user_id: user.id,
+          tenant_id: tenant.tenant_id,
+          user_id: tenant.user_id,
+          created_by: tenant.user_id,
         };
       });
 
@@ -389,11 +393,13 @@ export function useInventory() {
         throw new Error("Category already exists");
       }
 
-      const user = await authUser();
+      const tenant = await getTenantContext();
 
       const { error } = await supabase.from("categories").insert({
         name,
-        user_id: user.id,
+        tenant_id: tenant.tenant_id,
+        user_id: tenant.user_id,
+        created_by: tenant.user_id,
       });
 
       if (error) throw new Error(error.message);
@@ -420,13 +426,13 @@ export function useInventory() {
         throw new Error("Category already exists");
       }
 
-      const user = await authUser();
+      const tenant = await getTenantContext();
 
       const { error } = await supabase
         .from("categories")
         .update({ name: newName })
         .eq("name", oldName)
-        .eq("user_id", user.id);
+        .eq("tenant_id", tenant.tenant_id);
 
       if (error) throw new Error(error.message);
     },
@@ -438,13 +444,13 @@ export function useInventory() {
   // ================= DELETE CATEGORY MUTATION =================
   const deleteCategoryMutation = useMutation({
     mutationFn: async (name: Category) => {
-      const user = await authUser();
+      const tenant = await getTenantContext();
 
       const { error } = await supabase
         .from("categories")
         .delete()
         .eq("name", name)
-        .eq("user_id", user.id);
+        .eq("tenant_id", tenant.tenant_id);
 
       if (error) throw new Error(error.message);
     },

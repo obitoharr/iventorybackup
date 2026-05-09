@@ -36,6 +36,17 @@ export type BulkSaleItem = {
   quantity: number;
 };
 
+export type TenantRole = 'owner' | 'accountant' | 'sales';
+
+export interface TenantMember {
+  user_id: string;
+  tenant_id: string;
+  user_email: string;
+  role: TenantRole;
+  active: boolean;
+  created_at: string;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   success: boolean;

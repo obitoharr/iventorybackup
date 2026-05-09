@@ -15,6 +15,7 @@ import {
   Sun,
   User,
   Building2,
+  Settings,
   Menu,
   X,
   Plus,
@@ -153,6 +154,15 @@ export default function Sidebar({ dark, setDark }: Props) {
           >
             <FileText size={20} />
             {!collapsed && <span>Reports</span>}
+          </Link>
+
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className={navClass(pathname === "/settings")}
+          >
+            <Settings size={20} />
+            {!collapsed && <span>Settings</span>}
           </Link>
 
           <Link

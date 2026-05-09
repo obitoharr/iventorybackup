@@ -11,10 +11,12 @@ Before running the application, you must create database indexes for optimal per
 
 **Quick Setup:**
 1. Go to your Supabase Dashboard → SQL Editor
-2. Copy and paste the SQL from `supabase/migrations/20260506000001_add_performance_indexes.sql`
+2. Copy and paste the SQL from `supabase/migrations/20260506000000_create_tenant_schema.sql`
 3. Click Run
+4. Repeat with `supabase/migrations/20260506000001_add_performance_indexes.sql`
+5. Repeat with `supabase/migrations/20260506000002_add_rls_policies.sql`
 
-This is essential for handling 100+ concurrent users without performance degradation.
+This is essential for handling 100k+ users safely and keeping each user's data isolated.
 
 ## Getting Started
 

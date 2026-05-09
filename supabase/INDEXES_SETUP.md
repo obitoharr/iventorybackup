@@ -5,22 +5,24 @@
 1. Open your Supabase project dashboard
 2. Go to **SQL Editor**
 3. Click **New Query**
-4. Paste the SQL from: `supabase/migrations/20260506000001_add_performance_indexes.sql`
+4. Paste the SQL from: `supabase/migrations/20260506000000_create_tenant_schema.sql`
 5. Click **Run**
-6. Done! ✅
+6. Repeat with `supabase/migrations/20260506000001_add_performance_indexes.sql`
+7. Repeat with `supabase/migrations/20260506000002_add_rls_policies.sql`
+8. Done! ✅
 
 ## 📊 What Gets Indexed
 
 | Table | Index | Purpose |
 |-------|-------|---------|
-| **products** | `user_id` | Filter products by owner |
-| **products** | `user_id + created_at DESC` | Filter & sort by newest |
-| **sales** | `user_id` | Filter sales by owner |
-| **sales** | `user_id + created_at DESC` | Filter & sort by newest |
-| **categories** | `user_id` | Filter categories by owner |
+| **products** | `tenant_id` | Filter products by tenant |
+| **products** | `tenant_id + created_at DESC` | Filter & sort by newest |
+| **sales** | `tenant_id` | Filter sales by tenant |
+| **sales** | `tenant_id + created_at DESC` | Filter & sort by newest |
+| **categories** | `tenant_id` | Filter categories by tenant |
 | **products** | `id` | Fast product lookups |
 | **sales** | `product_id` | Fast sales lookups |
-| **products** | `user_id + stock` | Low stock queries |
+| **products** | `tenant_id + stock` | Low stock filters |
 
 ## ⚡ Performance Gains
 

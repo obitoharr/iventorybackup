@@ -10,8 +10,10 @@ Indexes are critical for performance at scale. Follow these steps to add indexes
 2. Select your project
 3. Navigate to **SQL Editor** in the left sidebar
 4. Click **New Query**
-5. Copy and paste the contents of `migrations/20260506000001_add_performance_indexes.sql`
+5. Copy and paste the contents of `migrations/20260506000000_create_tenant_schema.sql`
 6. Click **Run** to execute
+7. Repeat with `migrations/20260506000001_add_performance_indexes.sql`
+8. Repeat with `migrations/20260506000002_add_rls_policies.sql`
 
 ### Option 2: Using Supabase CLI
 
@@ -55,6 +57,10 @@ CREATE INDEX IF NOT EXISTS idx_sales_product_id ON sales(product_id);
 -- Index for product stock filtering
 CREATE INDEX IF NOT EXISTS idx_products_user_stock ON products(user_id, stock);
 ```
+
+## Applying RLS Policies
+
+You can protect each user's data by running `migrations/20260506000002_add_rls_policies.sql` after the index migration.
 
 ## Index Performance Impact
 

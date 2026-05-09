@@ -5,6 +5,7 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { Sale } from "../../types";
 import { supabase } from "@/lib/supabase";
+import { getTenantContext } from "@/lib/tenant";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 import {
@@ -32,21 +33,14 @@ export default function SalesPage() {
       setError(null);
 
       try {
-        const {
-          data: authData,
-          error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError || !authData.user) {
-          throw new Error("Authentication required");
-        }
+        const tenant = await getTenantContext();
 
         const { data, error } = await supabase
           .from("sales")
           .select(
             "id, product_id, product_name, quantity, total, created_at, user_id"
           )
-          .eq("user_id", authData.user.id)
+          .eq("tenant_id", tenant.tenant_id)
           .order("created_at", { ascending: false })
           .limit(200);
 

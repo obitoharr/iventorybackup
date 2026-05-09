@@ -49,6 +49,21 @@ export async function POST(req: Request) {
     );
   }
 
+  const { data: membership, error: membershipError } = await supabaseAdmin
+    .from("tenant_members")
+    .select("tenant_id")
+    .eq("user_id", userData.user.id)
+    .maybeSingle();
+
+  if (membershipError) {
+    return NextResponse.json(
+      { error: membershipError.message || "Failed to determine tenant" },
+      { status: 500 }
+    );
+  }
+
+  const tenantId = membership?.tenant_id || userData.user.id;
+
   const { data: insertedProduct, error: insertError } = await supabaseAdmin
     .from("products")
     .insert({
@@ -57,7 +72,9 @@ export async function POST(req: Request) {
       price,
       stock,
       notes,
+      tenant_id: tenantId,
       user_id: userData.user.id,
+      created_by: userData.user.id,
     })
     .select()
     .single();

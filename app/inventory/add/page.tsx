@@ -7,6 +7,7 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import AddProductForm from "../components/AddProductForm";
 import { supabase } from "@/lib/supabase";
+import { getTenantContext } from "@/lib/tenant";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 type Product = {
@@ -46,25 +47,13 @@ export default function AddPage() {
       setLoadingCategories(true);
 
       try {
-        const {
-          data: authData,
-          error: authError,
-        } = await supabase.auth.getUser();
+        const tenant = await getTenantContext();
 
-        if (authError || !authData.user) {
-          setCategories([]);
-          return;
-        }
-
-        const { data, error } =
-          await supabase
-            .from("categories")
-            .select("name")
-            .eq(
-              "user_id",
-              authData.user.id
-            )
-            .order("name");
+        const { data, error } = await supabase
+          .from("categories")
+          .select("name")
+          .eq("tenant_id", tenant.tenant_id)
+          .order("name");
 
         if (error) {
           throw error;
