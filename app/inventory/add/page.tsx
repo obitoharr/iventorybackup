@@ -6,8 +6,7 @@ import Link from "next/link";
 
 import Sidebar from "@/components/Sidebar";
 import AddProductForm from "../components/AddProductForm";
-import { supabase } from "@/lib/supabase";
-import { getTenantContext } from "@/lib/tenant";
+import { apiGet, apiPost } from "@/lib/apiClient";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 type Product = {
@@ -47,30 +46,14 @@ export default function AddPage() {
       setLoadingCategories(true);
 
       try {
-        const tenant = await getTenantContext();
-
-        const { data, error } = await supabase
-          .from("categories")
-          .select("name")
-          .eq("tenant_id", tenant.tenant_id)
-          .order("name");
-
-        if (error) {
-          throw error;
-        }
-
-        setCategories(
-          data?.map(
-            (c: any) => c.name
-          ) || []
-        );
+        const response = await apiGet<string[]>("/api/categories");
+        setCategories(response.data || []);
       } catch (err) {
         setMessage(
           err instanceof Error
             ? `❌ ${err.message}`
             : "❌ Failed to load categories"
         );
-
         setCategories([]);
       } finally {
         setLoadingCategories(false);
@@ -97,62 +80,15 @@ export default function AddPage() {
     product: Omit<Product, "id">
   ) => {
     try {
-      const {
-        data,
-        error: authError,
-      } =
-        await supabase.auth.getSession();
-
-      if (
-        authError ||
-        !data.session?.access_token
-      ) {
-        setMessage(
-          "❌ Session expired. Please log in again."
-        );
-
-        router.push("/login");
-
-        return false;
-      }
-
-      const token =
-        data.session.access_token;
-
-      const res = await fetch(
-        "/api/products",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(product),
-        }
-      );
-
-      const dataResponse =
-        await res.json();
-
-      if (!res.ok) {
-        setMessage(
-          "❌ " +
-            (dataResponse.error ||
-              "Failed to add product")
-        );
-
-        return false;
-      }
-
+      await apiPost<void>("/api/products", product);
       return true;
     } catch (error) {
       console.error(error);
-
       setMessage(
-        "❌ Network error"
+        error instanceof Error
+          ? `❌ ${error.message}`
+          : "❌ Network error"
       );
-
       return false;
     }
   };

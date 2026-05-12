@@ -15,49 +15,30 @@ export async function getTenantContext(): Promise<TenantContext> {
     throw new Error("Authentication required");
   }
 
-  const userId = authData.user.id;
-  const userEmail = authData.user.email || "";
+  const session = await supabase.auth.getSession();
+  const accessToken = session.data.session?.access_token;
 
-  const { data, error } = await supabase
-    .from("tenant_members")
-    .select("tenant_id, role, user_email")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
+  if (!accessToken) {
+    throw new Error("Authentication required");
   }
 
-  if (data) {
-    return {
-      tenant_id: data.tenant_id,
-      role: data.role as TenantRole,
-      user_id: userId,
-      user_email: data.user_email,
-    };
-  }
+  const res = await fetch("/api/tenant-context", {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
 
-  const { data: created, error: createError } = await supabase
-    .from("tenant_members")
-    .insert({
-      tenant_id: userId,
-      user_id: userId,
-      user_email: userEmail,
-      role: "owner",
-      active: true,
-      created_by: userId,
-    })
-    .select("tenant_id, role, user_email")
-    .maybeSingle();
+  const result = await res.json();
 
-  if (createError || !created) {
-    throw new Error(createError?.message || "Failed to initialize tenant membership");
+  if (!res.ok || !result?.success) {
+    throw new Error(result?.error || "Failed to load tenant context");
   }
 
   return {
-    tenant_id: created.tenant_id,
-    role: created.role as TenantRole,
-    user_id: userId,
-    user_email: created.user_email,
+    tenant_id: result.data.tenant_id,
+    role: result.data.role,
+    user_id: result.data.user_id,
+    user_email: result.data.user_email ?? "",
   };
 }

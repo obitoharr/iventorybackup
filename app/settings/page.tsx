@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { useRequireAuth, logout } from "@/hooks/useRequireAuth";
+import { BusinessSettingsForm } from "@/components/BusinessSettingsForm";
+import { CustomFieldsManager } from "@/components/CustomFieldsManager";
 import { supabase } from "@/lib/supabase";
 
 export default function SettingsPage() {
@@ -17,7 +19,8 @@ export default function SettingsPage() {
   const [subUserMessage, setSubUserMessage] = useState<string>("");
   const [setupError, setSetupError] = useState<string>("");
   const [subUserLoading, setSubUserLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState<"owner" | "system" | "subuser">("owner");
+  const [activeSection, setActiveSection] = useState<"owner" | "system" | "subuser" | "business" | "customfields">("owner");
+  const [businessType, setBusinessType] = useState<string>("custom");
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -32,43 +35,30 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadTenantRole = async () => {
       try {
-        const { data, error } = await supabase
-          .from("tenant_members")
-          .select("tenant_id, role")
-          .eq("user_id", user?.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Tenant role fetch error:", error.message);
-          setSetupError(
-            "Tenant schema is not installed. Run the Supabase tenant migration before using sub-users."
-          );
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        if (!token) {
           return;
         }
 
-        if (data?.role) {
-          setTenantRole(data.role);
-          return;
-        }
+        const res = await fetch("/api/tenant-role", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-        if (!data && user?.id && user.email) {
-          const { data: created, error: createError } = await supabase
-            .from("tenant_members")
-            .insert({
-              tenant_id: user.id,
-              user_id: user.id,
-              user_email: user.email,
-              role: "owner",
-              active: true,
-              created_by: user.id,
-            })
-            .select("role")
-            .maybeSingle();
-
-          if (!createError && created?.role) {
-            setTenantRole(created.role);
+        const result = await res.json();
+        if (!res.ok) {
+          console.error("Tenant role load error:", result.error);
+          if (result.error?.includes("tenant schema")) {
+            setSetupError(
+              "Tenant schema is not installed. Run the Supabase tenant migration before using sub-users."
+            );
           }
+          return;
         }
+
+        setTenantRole(result.data?.role ?? "");
       } catch (err) {
         console.error(err);
       }
@@ -180,6 +170,8 @@ export default function SettingsPage() {
           <div className="flex flex-wrap gap-3">
             {[
               { id: "owner", label: "Owner Settings" },
+              { id: "business", label: "Business Type" },
+              { id: "customfields", label: "Custom Fields" },
               { id: "system", label: "System Controls" },
               { id: "subuser", label: "Create Sub-user" },
             ].map((tab) => {
@@ -188,7 +180,7 @@ export default function SettingsPage() {
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveSection(tab.id as "owner" | "system" | "subuser")}
+                  onClick={() => setActiveSection(tab.id as "owner" | "system" | "subuser" | "business" | "customfields")}
                   className={`rounded-full px-4 py-2 text-sm font-semibold transition ${selected ? "bg-cyan-500 text-slate-950" : "border border-white/10 bg-slate-900/80 text-slate-100 hover:bg-slate-800"}`}
                 >
                   {tab.label}
@@ -354,8 +346,28 @@ CREATE TABLE IF NOT EXISTS tenant_members (
               )}
             </section>
           )}
+
+          {activeSection === "business" && (
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              <BusinessSettingsForm onBusinessTypeChange={setBusinessType} />
+            </section>
+          )}
+
+          {activeSection === "customfields" && (
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+              {tenantRole !== "owner" ? (
+                <div className="rounded-3xl border border-yellow-400/30 bg-yellow-500/10 p-6 text-yellow-100">
+                  <p className="font-semibold">Owner access required</p>
+                  <p className="mt-2 text-sm text-yellow-100/80">Only the tenant owner can manage custom fields. Your current role is <span className="font-medium">{tenantRole || "Member"}</span>.</p>
+                </div>
+              ) : (
+                <CustomFieldsManager businessType={businessType} />
+              )}
+            </section>
+          )}
         </div>
       </main>
     </div>
   );
 }
+

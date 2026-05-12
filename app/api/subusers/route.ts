@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import {
+  checkRateLimit,
+  getRateLimitIdentifier,
+  rateLimitResponse,
+} from "@/lib/rateLimit";
 
 const CreateSubUserSchema = z.object({
   email: z.string().email(),
@@ -8,7 +13,42 @@ const CreateSubUserSchema = z.object({
   role: z.enum(["accountant", "sales"]),
 });
 
-async function authorizeOwner(authHeader: string | null | undefined) {
+interface OwnerAuthSuccess {
+  user: NonNullable<Awaited<ReturnType<typeof supabaseAdmin.auth.getUser>>["data"]["user"]>;
+  tenantId: string;
+}
+
+interface OwnerAuthError {
+  error: string;
+  status?: number;
+}
+
+async function findUserByEmail(email: string) {
+  let page = 1;
+
+  while (true) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 100 });
+    if (error) {
+      throw error;
+    }
+
+    const user = data.users.find(
+      (user) => user.email?.toLowerCase() === email.toLowerCase()
+    );
+
+    if (user) {
+      return user;
+    }
+
+    if (!data.nextPage) {
+      return null;
+    }
+
+    page = data.nextPage;
+  }
+}
+
+async function authorizeOwner(authHeader: string | null | undefined): Promise<OwnerAuthSuccess | OwnerAuthError> {
   if (!authHeader) {
     return { error: "Missing authorization token" };
   }
@@ -18,10 +58,12 @@ async function authorizeOwner(authHeader: string | null | undefined) {
     return { error: "Invalid or expired session" };
   }
 
+  const user = userData.user;
+
   let { data: membership, error: membershipError } = await supabaseAdmin
     .from("tenant_members")
-    .select("tenant_id, role")
-    .eq("user_id", userData.user.id)
+    .select("tenant_id, role, active")
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (membershipError) {
@@ -39,7 +81,7 @@ async function authorizeOwner(authHeader: string | null | undefined) {
         active: true,
         created_by: userData.user.id,
       })
-      .select("tenant_id, role")
+      .select("tenant_id, role, active")
       .single();
 
     if (createMembershipError || !createdMembership) {
@@ -52,6 +94,10 @@ async function authorizeOwner(authHeader: string | null | undefined) {
   const role = membership.role;
   const tenantId = membership.tenant_id;
 
+  if (!membership.active) {
+    return { error: "Your owner membership is inactive", status: 403 };
+  }
+
   if (role !== "owner") {
     return { error: "Only owners can manage sub-users", status: 403 };
   }
@@ -62,7 +108,7 @@ async function authorizeOwner(authHeader: string | null | undefined) {
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization")?.replace("Bearer ", "")?.trim();
   const auth = await authorizeOwner(authHeader);
-  if (auth.error) {
+  if ("error" in auth) {
     return NextResponse.json({ error: auth.error }, { status: auth.status || 401 });
   }
 
@@ -84,32 +130,85 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const authHeader = req.headers.get("authorization")?.replace("Bearer ", "")?.trim();
   const auth = await authorizeOwner(authHeader);
-  if (auth.error) {
+  if ("error" in auth) {
     return NextResponse.json({ error: auth.error }, { status: auth.status || 401 });
   }
 
   const payload = await req.json();
   const parseResult = CreateSubUserSchema.safeParse(payload);
   if (!parseResult.success) {
-    return NextResponse.json({ error: parseResult.error.errors.map((e) => e.message).join(", ") }, { status: 422 });
+    return NextResponse.json(
+      {
+        error: parseResult.error.issues.map((issue) => issue.message).join(", ")
+      },
+      { status: 422 }
+    );
   }
 
   const { email, password, role } = parseResult.data;
   const ownerId = auth.user.id;
   const tenantId = auth.tenantId;
 
-  const {
-    data: createData,
-    error: createError,
-  } = await supabaseAdmin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
+  const identifier = getRateLimitIdentifier(req, auth.user.id);
+  const rateResult = await checkRateLimit(identifier, {
+    interval: 60_000,
+    maxRequests: 10,
   });
 
-  const newUser = createData?.user;
-  if (createError || !newUser) {
-    return NextResponse.json({ error: createError?.message || "Failed to create sub-user" }, { status: 500 });
+  if (!rateResult.success) {
+    return rateLimitResponse(rateResult);
+  }
+
+  let newUser = null;
+
+  try {
+    newUser = await findUserByEmail(email);
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to verify email" }, { status: 500 });
+  }
+
+  if (!newUser) {
+    const {
+      data: createData,
+      error: createError,
+    } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+
+    if (createError || !createData?.user) {
+      return NextResponse.json({ error: createError?.message || "Failed to create sub-user" }, { status: 500 });
+    }
+
+    newUser = createData.user;
+  }
+
+  const { data: existingMembership, error: existingMembershipError } = await supabaseAdmin
+    .from("tenant_members")
+    .select("user_id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", newUser.id)
+    .maybeSingle();
+
+  if (existingMembershipError) {
+    return NextResponse.json({ error: existingMembershipError.message || "Failed to check existing membership" }, { status: 500 });
+  }
+
+  if (existingMembership) {
+    return NextResponse.json({ error: "This user is already a member of the tenant" }, { status: 409 });
+  }
+
+  const { error: profileError } = await supabaseAdmin.from("profiles").upsert(
+    {
+      id: newUser.id,
+      email,
+    },
+    { onConflict: "id" }
+  );
+
+  if (profileError) {
+    return NextResponse.json({ error: profileError.message || "Failed to create sub-user profile" }, { status: 500 });
   }
 
   const { data: membership, error: membershipError } = await supabaseAdmin

@@ -26,12 +26,19 @@ export default function Categories({
 
   const add = async () => {
     const value = name.trim();
-    if (!value) return;
+    if (!value) {
+      console.log("Category name is empty");
+      return;
+    }
 
+    console.log("Adding category:", value);
     const success = await addCategory(value);
+    console.log("Add category result:", success);
 
     if (success) {
       setName("");
+    } else {
+      console.log("Failed to add category");
     }
   };
 

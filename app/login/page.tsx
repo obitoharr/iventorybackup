@@ -88,22 +88,37 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
 
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-    });
+    try {
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
 
-    setLoading(false);
+      const result = await res.json();
+      setLoading(false);
 
-    if (error) {
-      setMessageType("error");
-      setMessage(error.message);
-    } else {
+      if (!res.ok) {
+        setMessageType("error");
+        setMessage(result.error || "Failed to create account.");
+        return;
+      }
+
       setMessageType("success");
       setMessage("Account created successfully. Please log in.");
       setMode("login");
       setPassword("");
       setConfirmPassword("");
+    } catch (error) {
+      setLoading(false);
+      setMessageType("error");
+      setMessage("Signup failed. Please try again.");
+      console.error(error);
     }
   };
 

@@ -1,0 +1,15 @@
+﻿app/api/products/route.ts(14,18): error TS2554: Expected 2-3 arguments, but got 1.
+components/BusinessSettingsForm.tsx(32,5): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<unknown, Error, unknown, string[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<unknown, Error>', gave the following error.
+    Object literal may only specify known properties, and 'onSuccess' does not exist in type 'DefinedInitialDataOptions<unknown, Error, unknown, string[]>'.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<BusinessSettings | undefined, Error, BusinessSettings | undefined, string[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Object literal may only specify known properties, and 'onSuccess' does not exist in type 'UndefinedInitialDataOptions<BusinessSettings | undefined, Error, BusinessSettings | undefined, string[]>'.
+  Overload 3 of 3, '(options: UseQueryOptions<BusinessSettings | undefined, Error, BusinessSettings | undefined, string[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Object literal may only specify known properties, and 'onSuccess' does not exist in type 'UseQueryOptions<BusinessSettings | undefined, Error, BusinessSettings | undefined, string[]>'.
+components/BusinessSettingsForm.tsx(32,17): error TS7006: Parameter 'data' implicitly has an 'any' type.
+lib/api.ts(53,5): error TS2322: Type '{ error: string; status: number; user?: undefined; } | { user: User; error?: undefined; status?: undefined; }' is not assignable to type 'ServerTenantContext | { error: string; status: number; }'.
+  Type '{ user: User; error?: undefined; status?: undefined; }' is not assignable to type 'ServerTenantContext | { error: string; status: number; }'.
+    Type '{ user: User; error?: undefined; status?: undefined; }' is not assignable to type '{ error: string; status: number; }'.
+      Types of property 'error' are incompatible.
+        Type 'undefined' is not assignable to type 'string'.
+lib/search.ts(80,6): error TS2339: Property 'group_by' does not exist on type 'PostgrestFilterBuilder<any, any, any, ParserError<"Unexpected input: as total_sold">[], "sales", unknown, "GET">'.

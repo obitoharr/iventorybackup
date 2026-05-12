@@ -34,19 +34,36 @@ export default function ProfilePage() {
           .from("tenant_members")
           .select("tenant_id, role")
           .eq("user_id", user?.id)
-          .maybeSingle();
+          .order("created_at", { ascending: false })
+          .limit(1);
 
         if (error) {
           console.error("Tenant role fetch error:", error.message);
           return;
         }
 
-        if (data?.role) {
-          setTenantRole(data.role);
+        const membership = Array.isArray(data) ? data[0] : data;
+        if (membership?.role) {
+          setTenantRole(membership.role);
           return;
         }
 
-        if (!data && user?.id && user.email) {
+        if (user?.email) {
+          const { data: emailData, error: emailError } = await supabase
+            .from("tenant_members")
+            .select("tenant_id, role")
+            .eq("user_email", user.email)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          const emailMembership = Array.isArray(emailData) ? emailData[0] : emailData;
+          if (!emailError && emailMembership?.role) {
+            setTenantRole(emailMembership.role);
+            return;
+          }
+        }
+
+        if ((Array.isArray(data) ? data.length === 0 : !data) && user?.id && user.email) {
           const { data: created, error: createError } = await supabase
             .from("tenant_members")
             .insert({

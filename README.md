@@ -18,6 +18,20 @@ Before running the application, you must create database indexes for optimal per
 
 This is essential for handling 100k+ users safely and keeping each user's data isolated.
 
+## Required Environment Variables
+
+Add the following to your `.env.local` file:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+UPSTASH_REDIS_REST_URL=your-upstash-redis-rest-url
+UPSTASH_REDIS_REST_TOKEN=your-upstash-redis-rest-token
+```
+
+The new `UPSTASH_REDIS_*` values enable distributed rate limiting for production readiness.
+
 ## Getting Started
 
 First, run the development server:

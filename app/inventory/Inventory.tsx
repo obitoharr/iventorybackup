@@ -10,7 +10,6 @@ import AddProductForm from "./components/AddProductForm";
 import RestockModal from "./components/RestockModal";
 import EditProductModal from "./components/EditProductModal";
 
-import { supabase } from "@/lib/supabase";
 
 type InventoryProps = {
   products: Product[];

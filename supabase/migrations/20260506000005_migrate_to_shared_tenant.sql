@@ -1,0 +1,3 @@
+-- This migration is deprecated.
+-- The app uses per-owner UUID tenant IDs, not a single shared string tenant.
+-- No data changes are performed here to avoid invalid UUID writes.

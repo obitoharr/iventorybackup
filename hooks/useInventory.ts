@@ -1,11 +1,9 @@
 //app/hooks/useInventory.ts
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// COPILOT_MARKER
-import { supabase } from "@/lib/supabase";
-import { getTenantContext } from "@/lib/tenant";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/apiClient";
 import {
   BulkSaleItem,
   Product,
@@ -45,28 +43,18 @@ export function useInventory() {
   } = useQuery({
     queryKey: ["products", currentPage],
     queryFn: async () => {
-      const tenant = await getTenantContext();
-      const offset = (currentPage - 1) * itemsPerPage;
-
-      const { data: products, error: productsError, count: productsCount } = await supabase
-        .from("products")
-        .select("*", { count: "exact" })
-        .eq("tenant_id", tenant.tenant_id)
-        .range(offset, offset + itemsPerPage - 1)
-        .order("created_at", { ascending: false });
-
-      if (productsError) throw new Error(productsError.message);
-
+      const response = await apiGet<{ products: Product[]; count: number }>(
+        `/api/products?page=${currentPage}&per_page=${itemsPerPage}`
+      );
       return {
-        products: products || [],
-        count: productsCount || 0,
+        products: response.data?.products || [],
+        count: response.data?.count || 0,
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
   // ================= FETCH SALES =================
-// SALES_MARKER
   const {
     data: salesData,
     isLoading: salesLoading,
@@ -74,19 +62,9 @@ export function useInventory() {
   } = useQuery({
     queryKey: ["sales"],
     queryFn: async () => {
-      const tenant = await getTenantContext();
-
-      const { data: sales, error: salesError } = await supabase
-        .from("sales")
-        .select("id, product_id, product_name, quantity, total, created_at, user_id")
-        .eq("tenant_id", tenant.tenant_id)
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      if (salesError) throw new Error(salesError.message);
-      return sales || [];
+      const response = await apiGet<Sale[]>("/api/sales?limit=200");
+      return response.data || [];
     },
-    // SALES_QUERY_MARKER
     staleTime: 1000 * 60 * 5,
   });
 
@@ -98,15 +76,8 @@ export function useInventory() {
   } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
-      const tenant = await getTenantContext();
-
-      const { data: categories, error: categoriesError } = await supabase
-        .from("categories")
-        .select("name")
-        .eq("tenant_id", tenant.tenant_id);
-
-      if (categoriesError) throw new Error(categoriesError.message);
-      return categories?.map((c) => c.name) || [];
+      const response = await apiGet<string[]>("/api/categories");
+      return response.data || [];
     },
     staleTime: 1000 * 60 * 5,
   });
@@ -119,16 +90,7 @@ export function useInventory() {
         throw new Error(formatZodError(parseResult.error.issues));
       }
 
-      const tenant = await getTenantContext();
-
-      const { error } = await supabase.from("products").insert({
-        ...product,
-        tenant_id: tenant.tenant_id,
-        user_id: tenant.user_id,
-        created_by: tenant.user_id,
-      });
-
-      if (error) throw new Error(error.message);
+      await apiPost<void>("/api/products", product);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -148,29 +110,7 @@ export function useInventory() {
         throw new Error(formatZodError(parseResult.error.issues));
       }
 
-      const tenant = await getTenantContext();
-
-      const { data: product, error: productError } = await supabase
-        .from("products")
-        .select("tenant_id")
-        .eq("id", id)
-        .single();
-
-      if (productError || !product) {
-        throw new Error("Product not found");
-      }
-
-      if (product.tenant_id !== tenant.tenant_id) {
-        throw new Error("You do not have permission to edit this product");
-      }
-
-      const { error } = await supabase
-        .from("products")
-        .update(updates)
-        .eq("id", id)
-        .eq("tenant_id", tenant.tenant_id);
-
-      if (error) throw new Error(error.message);
+      await apiPatch<void>("/api/products", { id, updates });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -180,29 +120,7 @@ export function useInventory() {
   // ================= DELETE PRODUCT MUTATION =================
   const deleteProductMutation = useMutation({
     mutationFn: async (id: string) => {
-      const tenant = await getTenantContext();
-
-      const { data: product, error: productError } = await supabase
-        .from("products")
-        .select("tenant_id")
-        .eq("id", id)
-        .single();
-
-      if (productError || !product) {
-        throw new Error("Product not found");
-      }
-
-      if (product.tenant_id !== tenant.tenant_id) {
-        throw new Error("You do not have permission to delete this product");
-      }
-
-      const { error } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", id)
-        .eq("tenant_id", tenant.tenant_id);
-
-      if (error) throw new Error(error.message);
+      await apiDelete<void>("/api/products", { id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -217,24 +135,15 @@ export function useInventory() {
         throw new Error("Restock amount must be greater than zero");
       }
 
-      const products = productsData?.products || [];
-      const product = products.find((p) => p.id === id);
+      const product = productsData?.products.find((p) => p.id === id);
       if (!product) {
         throw new Error("Product not found");
       }
 
-      const tenant = await getTenantContext();
-
-      const { data, error } = await supabase
-        .from("products")
-        .update({ stock: product.stock + amount })
-        .eq("id", id)
-        .eq("tenant_id", tenant.tenant_id)
-        .select();
-
-      if (error || !data?.length) {
-        throw new Error(error?.message || "Failed to update stock");
-      }
+      await apiPatch<void>("/api/products", {
+        id,
+        updates: { stock: product.stock + amount },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -248,47 +157,19 @@ export function useInventory() {
         throw new Error("Sale quantity must be at least 1");
       }
 
-      const products = productsData?.products || [];
-      const product = products.find((p) => p.id === productId);
+      const product = productsData?.products.find((p) => p.id === productId);
       if (!product) {
         throw new Error("Product not found");
       }
 
-      const tenant = await getTenantContext();
-
-      const { data: updatedProducts, error: updateError } = await supabase
-        .from("products")
-        .update({ stock: product.stock - quantity })
-        .eq("id", productId)
-        .eq("tenant_id", tenant.tenant_id)
-        .gte("stock", quantity)
-        .select();
-
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-
-      if (!updatedProducts?.length) {
+      if (product.stock < quantity) {
         throw new Error("Insufficient stock for this sale");
       }
 
-      const { error: saleError } = await supabase.from("sales").insert({
+      await apiPost<void>("/api/sales", {
         product_id: productId,
-        product_name: product.name,
         quantity,
-        total: quantity * product.price,
-        tenant_id: tenant.tenant_id,
-        user_id: tenant.user_id,
-        created_by: tenant.user_id,
       });
-
-      if (saleError) {
-        await supabase
-          .from("products")
-          .update({ stock: product.stock })
-          .eq("id", productId);
-        throw new Error(saleError.message);
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -313,65 +194,18 @@ export function useInventory() {
         throw new Error("No items selected for sale");
       }
 
-      const tenant = await getTenantContext();
       const products = productsData?.products || [];
-      const rollbackStack: Array<{ id: string; stock: number }> = [];
-
-      for (const item of normalizedItems) {
-        if (item.quantity <= 0) {
-          throw new Error("Sale quantities must be greater than zero");
-        }
-
-        const product = products.find((p) => p.id === item.productId);
-        if (!product) {
-          throw new Error(`Product not found: ${item.productId}`);
-        }
-
-        const { data: updatedProducts, error: updateError } = await supabase
-          .from("products")
-          .update({ stock: product.stock - item.quantity })
-          .eq("id", item.productId)
-          .eq("tenant_id", tenant.tenant_id)
-          .gte("stock", item.quantity)
-          .select();
-
-        if (updateError) {
-          for (const rollback of rollbackStack) {
-            await supabase.from("products").update({ stock: rollback.stock }).eq("id", rollback.id);
-          }
-          throw new Error(updateError.message);
-        }
-
-        if (!updatedProducts?.length) {
-          for (const rollback of rollbackStack) {
-            await supabase.from("products").update({ stock: rollback.stock }).eq("id", rollback.id);
-          }
-          throw new Error(`Insufficient stock for ${product.name}`);
-        }
-
-        rollbackStack.push({ id: product.id, stock: product.stock });
+      const missing = normalizedItems.find((item) => !products.some((p) => p.id === item.productId));
+      if (missing) {
+        throw new Error(`Product not found: ${missing.productId}`);
       }
 
-      const salesRows = normalizedItems.map((item) => {
-        const product = products.find((p) => p.id === item.productId)!;
-        return {
+      await apiPost<void>("/api/sales", {
+        items: normalizedItems.map((item) => ({
           product_id: item.productId,
-          product_name: product.name,
           quantity: item.quantity,
-          total: item.quantity * product.price,
-          tenant_id: tenant.tenant_id,
-          user_id: tenant.user_id,
-          created_by: tenant.user_id,
-        };
+        })),
       });
-
-      const { error: saleError } = await supabase.from("sales").insert(salesRows);
-      if (saleError) {
-        for (const rollback of rollbackStack) {
-          await supabase.from("products").update({ stock: rollback.stock }).eq("id", rollback.id);
-        }
-        throw new Error(saleError.message);
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -383,26 +217,11 @@ export function useInventory() {
   // ================= ADD CATEGORY MUTATION =================
   const addCategoryMutation = useMutation({
     mutationFn: async (name: Category) => {
-      const parseResult = CategorySchema.safeParse(name);
-      if (!parseResult.success) {
-        throw new Error(formatZodError(parseResult.error.issues));
-      }
-
-      const categories = categoriesData || [];
-      if (categories.includes(name)) {
+      if ((categoriesData || []).includes(name)) {
         throw new Error("Category already exists");
       }
 
-      const tenant = await getTenantContext();
-
-      const { error } = await supabase.from("categories").insert({
-        name,
-        tenant_id: tenant.tenant_id,
-        user_id: tenant.user_id,
-        created_by: tenant.user_id,
-      });
-
-      if (error) throw new Error(error.message);
+      await apiPost<string>("/api/categories", { name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -412,29 +231,15 @@ export function useInventory() {
   // ================= UPDATE CATEGORY MUTATION =================
   const updateCategoryMutation = useMutation({
     mutationFn: async ({ oldName, newName }: { oldName: Category; newName: Category }) => {
-      const parseResult = CategorySchema.safeParse(newName);
-      if (!parseResult.success) {
-        throw new Error(formatZodError(parseResult.error.issues));
-      }
-
       if (oldName === newName) {
         return;
       }
 
-      const categories = categoriesData || [];
-      if (categories.includes(newName)) {
+      if ((categoriesData || []).includes(newName)) {
         throw new Error("Category already exists");
       }
 
-      const tenant = await getTenantContext();
-
-      const { error } = await supabase
-        .from("categories")
-        .update({ name: newName })
-        .eq("name", oldName)
-        .eq("tenant_id", tenant.tenant_id);
-
-      if (error) throw new Error(error.message);
+      await apiPatch<void>("/api/categories", { oldName, newName });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -444,15 +249,7 @@ export function useInventory() {
   // ================= DELETE CATEGORY MUTATION =================
   const deleteCategoryMutation = useMutation({
     mutationFn: async (name: Category) => {
-      const tenant = await getTenantContext();
-
-      const { error } = await supabase
-        .from("categories")
-        .delete()
-        .eq("name", name)
-        .eq("tenant_id", tenant.tenant_id);
-
-      if (error) throw new Error(error.message);
+      await apiDelete<void>("/api/categories", { name });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -570,7 +367,7 @@ export function useInventory() {
   };
 
   const updateCategories = (newCategories: Category[]) => {
-    // No-op for compatibility; categories are managed via server mutations
+    return;
   };
 
   // ================= LOADING STATE =================
@@ -578,9 +375,12 @@ export function useInventory() {
     isLoading:
       productsLoading || salesLoading || categoriesLoading,
     error:
-      (productsError?.message) ||
-      (salesError?.message) ||
-      (categoriesError?.message) ||
+      productsError?.message ||
+      salesError?.message ||
+      categoriesError?.message ||
+      addCategoryMutation.error?.message ||
+      updateCategoryMutation.error?.message ||
+      deleteCategoryMutation.error?.message ||
       null,
   };
 
@@ -590,7 +390,6 @@ export function useInventory() {
     sales: salesData || [],
     loading,
 
-    // Pagination
     currentPage,
     totalCount: productsData?.count || 0,
     itemsPerPage,

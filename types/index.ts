@@ -66,3 +66,54 @@ export interface InventoryState {
   sales: Sale[];
   loading: LoadingState;
 }
+
+// Custom Fields Types
+export type CustomFieldType = 'text' | 'number' | 'date' | 'select' | 'checkbox' | 'textarea' | 'currency';
+export type BusinessType = 'pharmacy' | 'ngo' | 'warehouse' | 'supermarket' | 'retail_shop' | 'distributor' | 'custom';
+
+export interface CustomField {
+  id: string;
+  tenant_id: string;
+  field_name: string;
+  display_name: string;
+  field_type: CustomFieldType;
+  is_required: boolean;
+  is_visible: boolean;
+  is_system?: boolean;
+  field_order: number;
+  select_options?: string[];
+  default_value?: string;
+  description?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BusinessSettings {
+  id: string;
+  tenant_id: string;
+  business_type: BusinessType;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Extended Product with custom data
+export interface ProductWithCustomData extends Product {
+  custom_data?: Record<string, any>;
+}
+
+// Custom Field Validation Schema
+export const CustomFieldSchema = z.object({
+  field_name: z.string().min(1).max(50),
+  display_name: z.string().min(1).max(100),
+  field_type: z.enum(['text', 'number', 'date', 'select', 'checkbox', 'textarea', 'currency']),
+  is_required: z.boolean().default(false),
+  is_visible: z.boolean().default(true),
+  field_order: z.number().int().default(0),
+  select_options: z.array(z.string()).optional(),
+  default_value: z.string().optional(),
+  description: z.string().max(500).optional(),
+});
+
+export type CustomFieldForm = z.infer<typeof CustomFieldSchema>;

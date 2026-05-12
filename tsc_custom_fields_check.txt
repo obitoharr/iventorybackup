@@ -1,0 +1,162 @@
+﻿app/api/custom-fields/route.ts(2,31): error TS2307: Cannot find module '@/lib/supabaseAdmin' or its corresponding type declarations.
+app/api/custom-fields/route.ts(3,64): error TS2307: Cannot find module '@/lib/api' or its corresponding type declarations.
+components/CustomFieldsManager.tsx(5,54): error TS2307: Cannot find module '@/lib/apiClient' or its corresponding type declarations.
+components/CustomFieldsManager.tsx(6,46): error TS2307: Cannot find module '@/types' or its corresponding type declarations.
+components/CustomFieldsManager.tsx(35,5): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<unknown, Error, unknown, string[]>, queryClient?: QueryClient): DefinedUseQueryResult<unknown, Error>', gave the following error.
+    Object literal may only specify known properties, and 'onError' does not exist in type 'DefinedInitialDataOptions<unknown, Error, unknown, string[]>'.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<any, Error, any, string[]>, queryClient?: QueryClient): UseQueryResult<any, Error>', gave the following error.
+    Object literal may only specify known properties, and 'onError' does not exist in type 'UndefinedInitialDataOptions<any, Error, any, string[]>'.
+  Overload 3 of 3, '(options: UseQueryOptions<any, Error, any, string[]>, queryClient?: QueryClient): UseQueryResult<any, Error>', gave the following error.
+    Object literal may only specify known properties, and 'onError' does not exist in type 'UseQueryOptions<any, Error, any, string[]>'.
+components/CustomFieldsManager.tsx(138,57): error TS2339: Property 'length' does not exist on type 'unknown'.
+components/CustomFieldsManager.tsx(173,37): error TS2339: Property 'find' does not exist on type 'unknown'.
+components/CustomFieldsManager.tsx(181,37): error TS2339: Property 'find' does not exist on type 'unknown'.
+components/CustomFieldsManager.tsx(189,12): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(194,6): error TS2339: Property 'filter' does not exist on type 'unknown'.
+components/CustomFieldsManager.tsx(198,5): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(199,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(200,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(204,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(205,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(206,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(207,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(209,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(216,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(217,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(219,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(221,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(223,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(224,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(225,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(234,7): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(235,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(236,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(241,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(247,9): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(248,25): error TS2339: Property 'length' does not exist on type 'unknown'.
+components/CustomFieldsManager.tsx(249,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(251,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(253,18): error TS2339: Property 'sort' does not exist on type 'unknown'.
+components/CustomFieldsManager.tsx(255,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(259,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(260,23): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(261,23): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(267,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(268,37): error TS2339: Property 'length' does not exist on type 'unknown'.
+components/CustomFieldsManager.tsx(269,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(270,27): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(276,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(278,27): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(280,74): error TS2339: Property 'length' does not exist on type 'unknown'.
+components/CustomFieldsManager.tsx(284,29): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(288,23): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(293,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(295,23): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(300,25): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(311,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(312,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(316,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(317,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(318,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(319,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(322,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(335,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(338,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(339,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(342,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(352,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(353,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(354,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(355,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(366,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(367,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(368,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(369,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(370,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(371,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(372,21): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(376,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(377,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(378,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(389,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(390,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(391,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(392,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(406,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(407,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(408,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(417,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(418,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(419,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(427,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(428,19): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(438,15): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(439,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(450,17): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(465,11): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+components/CustomFieldsManager.tsx(472,13): error TS17004: Cannot use JSX unless the '--jsx' flag is provided.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(335,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(692,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(709,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(794,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(1118,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(1182,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(1213,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(1259,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(1290,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(1428,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(1934,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/@tanstack/query-core/build/legacy/_tsup-dts-rollup.d.ts(2132,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/zod/v4/locales/index.d.cts(1,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ar"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(2,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/az"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(3,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/be"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(4,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/bg"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(5,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ca"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(6,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/cs"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(7,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/da"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(8,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/de"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(9,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/el"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(10,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/en"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(11,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/eo"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(12,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/es"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(13,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/fa"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(14,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/fi"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(15,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/fr"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(16,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/fr-CA"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(17,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/he"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(18,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/hr"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(19,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/hu"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(20,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/hy"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(21,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/id"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(22,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/is"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(23,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/it"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(24,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ja"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(25,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ka"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(26,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/kh"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(27,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/km"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(28,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ko"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(29,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/lt"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(30,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/mk"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(31,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ms"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(32,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/nl"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(33,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/no"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(34,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ota"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(35,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ps"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(36,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/pl"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(37,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/pt"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(38,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ro"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(39,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ru"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(40,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/sl"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(41,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/sv"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(42,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ta"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(43,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/th"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(44,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/tr"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(45,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ua"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(46,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/uk"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(47,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/ur"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(48,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/uz"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(49,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/vi"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(50,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/zh-CN"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(51,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/zh-TW"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/zod/v4/locales/index.d.cts(52,21): error TS1259: Module '"C:/Users/yahya/Desktop/inventoryup/inventory/node_modules/zod/v4/locales/yo"' can only be default-imported using the 'esModuleInterop' flag
