@@ -18,22 +18,52 @@ export default function ProductTable({
   onDelete?: (id: string) => void;
   loading?: boolean;
 }) {
-  // Standard columns that are always shown
-  const standardColumns = ["name", "category", "price", "stock", "notes"];
-
-  // Visible custom fields sorted by order
-  const visibleCustomFields = customFields
+  // All visible fields (system and custom) sorted by order
+  const allVisibleFields = customFields
     .filter((f) => f.is_visible)
     .sort((a, b) => a.field_order - b.field_order);
 
   // Calculate total columns
-  const totalCols = standardColumns.length + visibleCustomFields.length + 1; // +1 for actions
+  const totalCols = allVisibleFields.length + 1; // +1 for actions
 
-  const renderCustomFieldValue = (field: CustomField, value: any) => {
+  const renderFieldValue = (field: CustomField, product: ProductWithCustomData) => {
+    let value;
+    if (field.is_system) {
+      value = (product as any)[field.field_name];
+    } else {
+      value = product.custom_data?.[field.field_name];
+    }
+
     if (value === undefined || value === null) {
       return "—";
     }
 
+    // Special rendering for system fields
+    if (field.is_system) {
+      switch (field.field_name) {
+        case "cost_price":
+        case "price":
+          return `$${parseFloat(value).toFixed(2)}`;
+        case "stock":
+          return (
+            <span
+              className={`px-2 py-1 rounded text-xs font-semibold ${
+                value === 0
+                  ? "bg-red-500/20 text-red-300"
+                  : value < 10
+                  ? "bg-yellow-500/20 text-yellow-300"
+                  : "bg-green-500/20 text-green-300"
+              }`}
+            >
+              {value}
+            </span>
+          );
+        default:
+          return String(value);
+      }
+    }
+
+    // Custom field rendering
     switch (field.field_type) {
       case "currency":
         return `$${parseFloat(value).toFixed(2)}`;
@@ -48,23 +78,27 @@ export default function ProductTable({
     }
   };
 
+  if (allVisibleFields.length === 0) {
+    return (
+      <div className="w-full max-h-[70vh] overflow-auto rounded-2xl bg-white/10 p-8 text-center">
+        <div className="text-gray-400">
+          <h3 className="text-lg font-semibold mb-2">Create Your Table</h3>
+          <p>Go to Settings to configure your product fields and start managing your inventory.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-h-[70vh] overflow-auto rounded-2xl bg-white/10">
       <table className="min-w-full w-full text-sm">
         <thead className="sticky top-0 bg-slate-900 z-10">
           <tr>
-            <th className="p-3 text-left whitespace-nowrap">Name</th>
-            <th className="p-3 text-left whitespace-nowrap">Category</th>
-            <th className="p-3 text-left whitespace-nowrap">Price</th>
-            <th className="p-3 text-left whitespace-nowrap">Stock</th>
-            <th className="p-3 text-left whitespace-nowrap">Notes</th>
-
-            {visibleCustomFields.map((field) => (
+            {allVisibleFields.map((field) => (
               <th key={field.id} className="p-3 text-left whitespace-nowrap" title={field.description}>
                 {field.display_name}
               </th>
             ))}
-
             <th className="p-3 text-left whitespace-nowrap">Actions</th>
           </tr>
         </thead>
@@ -88,44 +122,24 @@ export default function ProductTable({
           ) : (
             products.map((p) => (
               <tr key={p.id} className="border-t border-white/10 hover:bg-white/5 transition">
-                <td className="p-3 whitespace-nowrap font-medium">{p.name}</td>
-                <td className="p-3 whitespace-nowrap text-slate-300">{p.category}</td>
-                <td className="p-3 whitespace-nowrap text-slate-300">${p.price.toFixed(2)}</td>
-                <td className="p-3 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-semibold ${
-                      p.stock === 0
-                        ? "bg-red-500/20 text-red-300"
-                        : p.stock < 10
-                        ? "bg-yellow-500/20 text-yellow-300"
-                        : "bg-green-500/20 text-green-300"
-                    }`}
-                  >
-                    {p.stock}
-                  </span>
-                </td>
-                <td className="p-3 max-w-xs text-ellipsis overflow-hidden whitespace-nowrap text-slate-400">
-                  {p.notes ? (p.notes.length > 40 ? `${p.notes.slice(0, 40)}...` : p.notes) : "—"}
-                </td>
-
-                {visibleCustomFields.map((field) => (
+                {allVisibleFields.map((field) => (
                   <td
                     key={field.id}
                     className="p-3 whitespace-nowrap text-slate-300"
-                    title={String(p.custom_data?.[field.field_name])}
+                    title={field.is_system ? String((p as any)[field.field_name]) : String(p.custom_data?.[field.field_name])}
                   >
-                    {renderCustomFieldValue(field, p.custom_data?.[field.field_name])}
+                    {renderFieldValue(field, p)}
                   </td>
                 ))}
 
                 <td className="p-3 flex flex-wrap gap-2">
                   <button
-                    onClick={() => p.stock > 0 && openSell(p)}
+                    onClick={() => (p.stock > 0 || !allVisibleFields.some(f => f.field_name === 'stock')) && openSell(p)}
                     className={`flex items-center gap-1 text-xs ${
-                      p.stock === 0 ? "text-gray-500 cursor-not-allowed" : "text-green-400 hover:text-green-300"
+                      (allVisibleFields.some(f => f.field_name === 'stock') ? p.stock : 1) === 0 ? "text-gray-500 cursor-not-allowed" : "text-green-400 hover:text-green-300"
                     } transition`}
-                    disabled={p.stock === 0}
-                    title={p.stock === 0 ? "Out of stock" : "Record a sale"}
+                    disabled={(allVisibleFields.some(f => f.field_name === 'stock') ? p.stock : 1) === 0}
+                    title={(allVisibleFields.some(f => f.field_name === 'stock') ? p.stock : 1) === 0 ? "Out of stock" : "Record a sale"}
                   >
                     <ShoppingCart size={14} />
                     Sell

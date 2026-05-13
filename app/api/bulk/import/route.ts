@@ -10,10 +10,10 @@ const BulkImportSchema = z.object({
     ProductSchema.pick({
       name: true,
       category: true,
+      cost_price: true,
       price: true,
       stock: true,
-      notes: true,
-    }).partial({ notes: true })
+    })
   ),
 });
 

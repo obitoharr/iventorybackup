@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/apiClient";
 import { CustomField, CustomFieldForm } from "@/types";
-import { X, Plus, Edit2, ChevronUp, ChevronDown } from "lucide-react";
+import { X, Plus, Edit2 } from "lucide-react";
 
 interface CustomFieldsManagerProps {
   businessType?: string;
@@ -15,7 +15,7 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Partial<CustomFieldForm> & { id?: string }>({
+  const [formData, setFormData] = useState<Partial<CustomField> & { id?: string }>({
     field_name: "",
     display_name: "",
     field_type: "text",
@@ -23,19 +23,20 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
     is_visible: true,
     field_order: 0,
     select_options: [],
+    is_system: false,
   });
 
   // Fetch custom fields
-  const { data: customFields = [], isLoading } = useQuery({
+  const customFieldsQuery = useQuery<CustomField[], Error>({
     queryKey: ["custom_fields"],
     queryFn: async () => {
       const response = await apiGet<CustomField[]>("/api/custom-fields");
       return response.data || [];
     },
-    onError: (error: unknown) => {
-      setErrorMessage(error instanceof Error ? error.message : "Failed to load custom fields");
-    },
   });
+
+  const customFields = customFieldsQuery.data ?? [];
+  const isLoading = customFieldsQuery.isLoading;
 
   // Create custom field
   const createMutation = useMutation({
@@ -49,8 +50,8 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
       setIsAdding(false);
       setErrorMessage(null);
     },
-    onError: (error: unknown) => {
-      setErrorMessage(error instanceof Error ? error.message : "Failed to create custom field");
+    onError: (error: Error) => {
+      setErrorMessage(error.message);
     },
   });
 
@@ -66,39 +67,40 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
       setEditingId(null);
       setErrorMessage(null);
     },
-    onError: (error: unknown) => {
-      setErrorMessage(error instanceof Error ? error.message : "Failed to update custom field");
+    onError: (error: Error) => {
+      setErrorMessage(error.message);
     },
   });
 
   // Delete custom field
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiDelete("/api/custom-fields", { id });
+      await apiDelete(`/api/custom-fields?id=${encodeURIComponent(id)}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields"] });
       setErrorMessage(null);
     },
-    onError: (error: unknown) => {
-      setErrorMessage(error instanceof Error ? error.message : "Failed to delete custom field");
+    onError: (error: Error) => {
+      setErrorMessage(error.message);
     },
   });
 
-  // Reorder mutation
-  const reorderMutation = useMutation({
-    mutationFn: async ({ id, newOrder }: { id: string; newOrder: number }) => {
-      await apiPatch<CustomField>("/api/custom-fields", {
+  // Update visibility mutation
+  const updateVisibilityMutation = useMutation({
+    mutationFn: async ({ id, is_visible }: { id: string; is_visible: boolean }) => {
+      const response = await apiPatch<CustomField>("/api/custom-fields", {
         id,
-        updates: { field_order: newOrder },
+        updates: { is_visible },
       });
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["custom_fields"] });
       setErrorMessage(null);
     },
-    onError: (error: unknown) => {
-      setErrorMessage(error instanceof Error ? error.message : "Failed to reorder custom fields");
+    onError: (error: Error) => {
+      setErrorMessage(error.message);
     },
   });
 
@@ -111,11 +113,12 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
       is_visible: true,
       field_order: 0,
       select_options: [],
+      is_system: false,
     });
     setErrorMessage(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!formData.field_name || !formData.display_name) {
@@ -141,6 +144,11 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
       description: formData.description,
     };
 
+    if (formData.is_system) {
+      submitData.field_type = formData.field_type as any;
+      submitData.is_required = formData.is_required ?? false;
+    }
+
     try {
       if (editingId) {
         await updateMutation.mutateAsync({ id: editingId, updates: submitData });
@@ -164,35 +172,24 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
       select_options: field.select_options || [],
       default_value: field.default_value,
       description: field.description,
+      is_system: field.is_system ?? false,
     });
     setEditingId(field.id);
     setIsAdding(true);
-  };
-
-  const handleMoveUp = (field: CustomField) => {
-    const aboveField = customFields.find((f) => f.field_order === field.field_order - 1);
-    if (aboveField) {
-      reorderMutation.mutateAsync({ id: field.id, newOrder: field.field_order - 1 });
-      reorderMutation.mutateAsync({ id: aboveField.id, newOrder: aboveField.field_order + 1 });
-    }
-  };
-
-  const handleMoveDown = (field: CustomField) => {
-    const belowField = customFields.find((f) => f.field_order === field.field_order + 1);
-    if (belowField) {
-      reorderMutation.mutateAsync({ id: field.id, newOrder: field.field_order + 1 });
-      reorderMutation.mutateAsync({ id: belowField.id, newOrder: belowField.field_order - 1 });
-    }
   };
 
   if (isLoading) {
     return <div className="p-4 text-center text-slate-400">Loading custom fields...</div>;
   }
 
-  const standardColumns = ["Name", "Category", "Price", "Stock", "Notes"];
-  const visibleCustomFields = customFields
-    .filter((field) => field.is_visible)
+  const systemFields = customFields
+    .filter((field) => field.is_system)
     .sort((a, b) => a.field_order - b.field_order);
+  const customFieldRows = customFields
+    .filter((field) => !field.is_system)
+    .sort((a, b) => a.field_order - b.field_order);
+  const visibleSystemFields = systemFields.filter((field) => field.is_visible);
+  const visibleCustomFields = customFieldRows.filter((field) => field.is_visible);
 
   return (
     <div className="space-y-6">
@@ -203,14 +200,27 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-500 mb-3">Standard columns</p>
-            <ul className="space-y-2 text-sm text-slate-200">
-              {standardColumns.map((column) => (
-                <li key={column} className="rounded px-2 py-1 bg-slate-800 border border-slate-700">
-                  {column}
-                </li>
-              ))}
-            </ul>
+            <p className="text-xs uppercase tracking-[0.16em] text-slate-500 mb-3">Standard table fields</p>
+            {systemFields.length === 0 ? (
+              <p className="text-sm text-slate-500">No standard fields configured.</p>
+            ) : (
+              <ul className="space-y-2 text-sm text-slate-200">
+                {systemFields.map((field) => (
+                  <li key={field.id} className="flex items-center justify-between">
+                    <span className="font-medium">{field.display_name}</span>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={field.is_visible}
+                        onChange={(e) => updateVisibilityMutation.mutate({ id: field.id, is_visible: e.target.checked })}
+                        className="w-4 h-4 rounded border border-slate-600 bg-slate-700 cursor-pointer"
+                      />
+                      <span className="text-xs text-slate-400">Show</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
@@ -243,48 +253,38 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
           </div>
         ) : null}
 
-        {/* Custom Fields List */}
-        <div className="space-y-2 mb-6">
-          {customFields.length === 0 ? (
-            <p className="text-slate-500 text-sm italic">No custom fields yet. Add one to get started.</p>
-          ) : (
-            <div className="space-y-2">
+        {/* Custom Fields Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-800">
+              <tr>
+                <th className="p-3 text-left text-slate-300">Display Name</th>
+                <th className="p-3 text-left text-slate-300">Field Name</th>
+                <th className="p-3 text-left text-slate-300">Type</th>
+                <th className="p-3 text-center text-slate-300">Visible</th>
+                <th className="p-3 text-center text-slate-300">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
               {customFields
+                .slice()
                 .sort((a, b) => a.field_order - b.field_order)
                 .map((field) => (
-                  <div
-                    key={field.id}
-                    className="flex items-center justify-between bg-slate-800 p-3 rounded border border-slate-700 hover:border-slate-600 transition"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-white">{field.display_name}</p>
-                      <p className="text-xs text-slate-400">
-                        {field.field_name} • {field.field_type}
-                        {field.is_required && " • Required"}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {customFields.length > 1 && (
-                        <>
-                          <button
-                            onClick={() => handleMoveUp(field)}
-                            disabled={field.field_order === 0}
-                            className="p-1 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Move up"
-                          >
-                            <ChevronUp size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleMoveDown(field)}
-                            disabled={field.field_order === customFields.length - 1}
-                            className="p-1 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Move down"
-                          >
-                            <ChevronDown size={16} />
-                          </button>
-                        </>
-                      )}
+                  <tr key={field.id} className="border-t border-slate-700 hover:bg-slate-800/50">
+                    <td className="p-3 text-white font-medium">{field.display_name}</td>
+                    <td className="p-3 text-slate-400">{field.field_name}</td>
+                    <td className="p-3 text-slate-400">
+                      {field.is_system ? `${field.field_type} (System)` : field.field_type}
+                    </td>
+                    <td className="p-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={field.is_visible}
+                        onChange={(e) => updateVisibilityMutation.mutate({ id: field.id, is_visible: e.target.checked })}
+                        className="w-4 h-4 rounded border border-slate-600 bg-slate-700 cursor-pointer"
+                      />
+                    </td>
+                    <td className="p-3 text-center flex justify-center gap-2">
                       <button
                         onClick={() => handleEdit(field)}
                         className="p-1 text-slate-400 hover:text-white transition"
@@ -292,19 +292,25 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                       >
                         <Edit2 size={16} />
                       </button>
-                      <button
-                        onClick={() => deleteMutation.mutate(field.id)}
-                        className="p-1 text-red-400 hover:text-red-300 transition"
-                        title="Delete"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  </div>
+                      {!field.is_system && (
+                        <button
+                          onClick={() => deleteMutation.mutate(field.id)}
+                          className="p-1 text-red-400 hover:text-red-300 transition"
+                          title="Delete"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
                 ))}
-            </div>
-          )}
+            </tbody>
+          </table>
         </div>
+
+        {customFields.length === 0 && (
+          <p className="text-slate-500 text-sm italic mt-4">No fields configured yet.</p>
+        )}
 
         {/* Add/Edit Form */}
         {isAdding ? (
@@ -349,6 +355,12 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                 </div>
               </div>
 
+              {formData.is_system && (
+                <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 mb-4 text-xs text-slate-300">
+                  Standard fields can only change display name, visibility, and order.
+                  Field type and internal field names are locked to avoid breaking the product schema.
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">Field Type *</label>
@@ -361,7 +373,8 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                         select_options: e.target.value === "select" ? [""] : undefined,
                       })
                     }
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    disabled={formData.is_system}
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option value="text">Text</option>
                     <option value="number">Number</option>
@@ -380,7 +393,8 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                     value={formData.default_value || ""}
                     onChange={(e) => setFormData({ ...formData, default_value: e.target.value })}
                     placeholder="Optional default value"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    disabled={formData.is_system}
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -421,6 +435,7 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                     checked={formData.is_required || false}
                     onChange={(e) => setFormData({ ...formData, is_required: e.target.checked })}
                     className="w-4 h-4"
+                    disabled={formData.is_system}
                   />
                   Required Field
                 </label>

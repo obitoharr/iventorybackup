@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { Product, BulkSaleItem, ProductForm } from "../../types";
+import { Product, ProductWithCustomData, CustomField, BulkSaleItem, ProductForm } from "../../types";
 import ProductTable from "./ProductTable";
 import SellModal from "./SellModal";
 import BulkSellModal from "./BulkSellModal";
@@ -12,7 +12,8 @@ import EditProductModal from "./components/EditProductModal";
 
 
 type InventoryProps = {
-  products: Product[];
+  products: ProductWithCustomData[];
+  customFields?: CustomField[];
   categories: string[];
   loading: {
     isLoading: boolean;
@@ -43,6 +44,7 @@ type InventoryProps = {
 export default function Inventory(props: InventoryProps) {
   const {
     products,
+    customFields = [],
     categories,
     loading,
     updateProduct,
@@ -65,9 +67,10 @@ export default function Inventory(props: InventoryProps) {
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState(categories?.[0] ?? "");
+  const [costPrice, setCostPrice] = useState(0);
   const [price, setPrice] = useState(0);
   const [stock, setStock] = useState(0);
-  const [note, setNote] = useState("");
+  const [customData, setCustomData] = useState<Record<string, any>>({});
 
   const [editItem, setEditItem] = useState<Product | null>(null);
   const [restockItem, setRestockItem] = useState<Product | null>(null);
@@ -99,8 +102,13 @@ export default function Inventory(props: InventoryProps) {
       return;
     }
 
+    if (costPrice < 0) {
+      showMessage("error", "Cost price cannot be negative");
+      return;
+    }
+
     if (price <= 0) {
-      showMessage("error", "Price must be greater than 0");
+      showMessage("error", "Sell price must be greater than 0");
       return;
     }
 
@@ -112,16 +120,18 @@ export default function Inventory(props: InventoryProps) {
     const success = await addProduct({
       name: name.trim(),
       category,
+      cost_price: costPrice,
       price,
       stock,
-      notes: note.trim() || undefined,
+      custom_data: customData,
     });
 
     if (success) {
       setName("");
+      setCostPrice(0);
       setPrice(0);
       setStock(0);
-      setNote("");
+      setCustomData({});
       showMessage("success", "Product added successfully");
     } else {
       showMessage("error", "Failed to add product");
@@ -239,12 +249,17 @@ export default function Inventory(props: InventoryProps) {
           setName={setName}
           category={category}
           setCategory={setCategory}
+          costPrice={costPrice}
+          setCostPrice={setCostPrice}
           price={price}
           setPrice={setPrice}
           stock={stock}
           setStock={setStock}
           categories={categories}
           loadingCategories={false}
+          customFields={customFields}
+          customData={customData}
+          setCustomData={setCustomData}
           addProductHandler={addProductHandler}
         />
       </section>
@@ -254,6 +269,7 @@ export default function Inventory(props: InventoryProps) {
         <div className="rounded-2xl overflow-auto max-h-[65vh] bg-white/5">
           <ProductTable
             products={products}
+            customFields={customFields}
             loading={loading.isLoading}
             openSell={openSell}
             onEdit={setEditItem}
@@ -326,6 +342,7 @@ export default function Inventory(props: InventoryProps) {
       <EditProductModal
         editItem={editItem}
         categories={categories}
+        customFields={customFields}
         setEditItem={setEditItem}
         saveEdit={saveEdit}
       />

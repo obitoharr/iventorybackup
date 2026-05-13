@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Product } from "../../../types";
+import { Product, CustomField } from "../../../types";
+import { CustomFieldInput } from "@/components/CustomFieldInput";
 
 type Props = {
   editItem: Product | null;
   categories: string[];
+  customFields?: CustomField[];
   setEditItem: (item: Product | null) => void;
   saveEdit: (product: Product) => void;
 };
@@ -11,23 +13,37 @@ type Props = {
 export default function EditProductModal({
   editItem,
   categories,
+  customFields = [],
   setEditItem,
   saveEdit,
 }: Props) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [costPrice, setCostPrice] = useState(0);
   const [price, setPrice] = useState(0);
+  const [stock, setStock] = useState(0);
+  const [customData, setCustomData] = useState<Record<string, any>>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!editItem) return;
     setName(editItem.name);
     setCategory(editItem.category || categories[0] || "");
+    setCostPrice((editItem as any).cost_price ?? 0);
     setPrice(editItem.price);
+    setStock(editItem.stock);
+    setCustomData(editItem.custom_data || {});
     setError(null);
   }, [editItem, categories]);
 
   if (!editItem) return null;
+
+  const handleCustomFieldChange = (fieldName: string, value: any) => {
+    setCustomData({
+      ...customData,
+      [fieldName]: value,
+    });
+  };
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -40,8 +56,18 @@ export default function EditProductModal({
       return;
     }
 
+    if (costPrice < 0) {
+      setError("Cost price cannot be negative.");
+      return;
+    }
+
     if (price <= 0) {
-      setError("Price must be greater than 0.");
+      setError("Sell price must be greater than 0.");
+      return;
+    }
+
+    if (stock < 0) {
+      setError("Stock cannot be negative.");
       return;
     }
 
@@ -49,7 +75,10 @@ export default function EditProductModal({
       ...editItem,
       name: name.trim(),
       category,
+      cost_price: costPrice,
       price,
+      stock,
+      custom_data: customData,
     });
   };
 
@@ -58,42 +87,80 @@ export default function EditProductModal({
       <div className="box">
         <h2 className="text-xl font-semibold mb-4">Edit Product</h2>
 
-        <label className="block mb-3 text-sm text-gray-300">
-          Name
-          <input
-            className="mt-2 block w-full rounded bg-slate-900 p-2 text-white border border-white/10"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="block text-sm text-gray-300">
+            Name
+            <input
+              className="mt-2 block w-full rounded bg-slate-900 p-2 text-white border border-white/10"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
 
-        <label className="block mb-3 text-sm text-gray-300">
-          Category
-          <select
-            className="mt-2 block w-full rounded bg-slate-900 p-2 text-white border border-white/10"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            {categories.map((cat, index) => (
-              <option key={`${cat}-${index}`} value={cat}>
-                {cat}
-              </option>
+          <label className="block text-sm text-gray-300">
+            Category
+            <select
+              className="mt-2 block w-full rounded bg-slate-900 p-2 text-white border border-white/10"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              {categories.map((cat, index) => (
+                <option key={`${cat}-${index}`} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block text-sm text-gray-300">
+            Cost Price
+            <input
+              className="mt-2 block w-full rounded bg-slate-900 p-2 text-white border border-white/10"
+              type="number"
+              min={0}
+              step="0.01"
+              value={costPrice}
+              onChange={(e) => setCostPrice(Number(e.target.value))}
+            />
+          </label>
+
+          <label className="block text-sm text-gray-300">
+            Sell Price
+            <input
+              className="mt-2 block w-full rounded bg-slate-900 p-2 text-white border border-white/10"
+              type="number"
+              min={0}
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(Number(e.target.value))}
+            />
+          </label>
+
+          <label className="block text-sm text-gray-300">
+            Stock
+            <input
+              className="mt-2 block w-full rounded bg-slate-900 p-2 text-white border border-white/10"
+              type="number"
+              min={0}
+              step={1}
+              value={stock}
+              onChange={(e) => setStock(Number(e.target.value))}
+            />
+          </label>
+
+          {/* Custom Fields */}
+          {customFields
+            .filter((field) => !field.is_system)
+            .map((field) => (
+              <CustomFieldInput
+                key={field.id}
+                field={field}
+                value={customData?.[field.field_name]}
+                onChange={(value) => handleCustomFieldChange(field.field_name, value)}
+                disabled={false}
+              />
             ))}
-          </select>
-        </label>
-
-        <label className="block mb-4 text-sm text-gray-300">
-          Price
-          <input
-            className="mt-2 block w-full rounded bg-slate-900 p-2 text-white border border-white/10"
-            type="number"
-            min={0.01}
-            step="0.01"
-            value={price}
-            onChange={(e) => setPrice(Number(e.target.value))}
-          />
-        </label>
-
+        </div>
 
         {error && <p className="mb-4 text-sm text-red-300">{error}</p>}
 

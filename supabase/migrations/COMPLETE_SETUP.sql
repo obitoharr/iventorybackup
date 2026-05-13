@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS products (
   created_by uuid NOT NULL,
   name text NOT NULL,
   category text NOT NULL,
+  cost_price numeric(12,2) NOT NULL DEFAULT 0 CHECK (cost_price >= 0),
   price numeric(12,2) NOT NULL CHECK (price >= 0),
   stock integer NOT NULL DEFAULT 0 CHECK (stock >= 0),
   notes text,

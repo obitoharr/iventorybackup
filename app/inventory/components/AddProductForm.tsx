@@ -1,17 +1,25 @@
 //app/inventory/components/AddProductForm.tsx
 "use client";
 
+import { CustomField } from "../../../types";
+import { CustomFieldInput } from "@/components/CustomFieldInput";
+
 type Props = {
   name: string;
   setName: (v: string) => void;
   category: string;
   setCategory: (v: string) => void;
+  costPrice: number;
+  setCostPrice: (v: number) => void;
   price: number;
   setPrice: (v: number) => void;
   stock: number;
   setStock: (v: number) => void;
   categories: string[];
   loadingCategories?: boolean;
+  customFields?: CustomField[];
+  customData?: Record<string, any>;
+  setCustomData?: (data: Record<string, any>) => void;
   addProductHandler: () => void;
 };
 
@@ -20,14 +28,27 @@ export default function AddProductForm({
   setName,
   category,
   setCategory,
+  costPrice,
+  setCostPrice,
   price,
   setPrice,
   stock,
   setStock,
   categories,
   loadingCategories = false,
+  customFields = [],
+  customData = {},
+  setCustomData,
   addProductHandler,
 }: Props) {
+  const handleCustomFieldChange = (fieldName: string, value: any) => {
+    if (!setCustomData) return;
+    setCustomData({
+      ...customData,
+      [fieldName]: value,
+    });
+  };
+
   return (
     <div className="w-full bg-slate-900/40 border border-white/10 rounded-2xl p-4 sm:p-6">
       <h3 className="text-lg sm:text-xl font-semibold mb-4 text-white">
@@ -68,12 +89,27 @@ export default function AddProductForm({
           </select>
         </div>
 
-        {/* Price */}
+        {/* Cost Price */}
         <div>
-          <label className="text-sm text-gray-300">Price ($)</label>
+          <label className="text-sm text-gray-300">Cost Price ($)</label>
           <input
             className="input"
             type="number"
+            min={0}
+            step="0.01"
+            value={costPrice}
+            onChange={(e) => setCostPrice(Number(e.target.value))}
+          />
+        </div>
+
+        {/* Sell Price */}
+        <div>
+          <label className="text-sm text-gray-300">Sell Price ($)</label>
+          <input
+            className="input"
+            type="number"
+            min={0}
+            step="0.01"
             value={price}
             onChange={(e) => setPrice(Number(e.target.value))}
           />
@@ -89,8 +125,20 @@ export default function AddProductForm({
             onChange={(e) => setStock(Number(e.target.value))}
           />
         </div>
-      </div>
 
+        {/* Custom Fields */}
+        {customFields
+          .filter((field) => !field.is_system)
+          .map((field) => (
+            <CustomFieldInput
+              key={field.id}
+              field={field}
+              value={customData?.[field.field_name]}
+              onChange={(value) => handleCustomFieldChange(field.field_name, value)}
+              disabled={false}
+            />
+          ))}
+      </div>
 
       {/* Button */}
       <div className="mt-5 flex justify-end">

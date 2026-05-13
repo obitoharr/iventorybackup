@@ -8,6 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import AddProductForm from "../components/AddProductForm";
 import { apiGet, apiPost } from "@/lib/apiClient";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useCustomFields } from "@/hooks/useCustomFields";
 
 type Product = {
   id?: string;
@@ -15,6 +16,7 @@ type Product = {
   category: string;
   price: number;
   stock: number;
+  custom_data?: Record<string, any>;
 };
 
 export default function AddPage() {
@@ -29,8 +31,10 @@ export default function AddPage() {
   const [name, setName] = useState("");
   const [category, setCategory] =
     useState("");
+  const [costPrice, setCostPrice] = useState(0);
   const [price, setPrice] = useState(0);
   const [stock, setStock] = useState(0);
+  const [customData, setCustomData] = useState<Record<string, any>>({});
 
   const [isSubmitting, setIsSubmitting] =
     useState(false);
@@ -39,6 +43,8 @@ export default function AddPage() {
     useState("");
 
   const [dark, setDark] = useState(true);
+  const customFieldsQuery = useCustomFields();
+  const customFields = customFieldsQuery.data || [];
 
   // ================= LOAD CATEGORIES =================
   useEffect(() => {
@@ -101,6 +107,7 @@ export default function AddPage() {
       if (
         !name.trim() ||
         !category.trim() ||
+        costPrice < 0 ||
         price <= 0 ||
         stock < 0
       ) {
@@ -119,8 +126,10 @@ export default function AddPage() {
         await addProduct({
           name: name.trim(),
           category,
+          cost_price: Number(costPrice),
           price: Number(price),
           stock: Number(stock),
+          custom_data: customData,
         });
 
       if (success) {
@@ -131,6 +140,7 @@ export default function AddPage() {
         setName("");
         setPrice(0);
         setStock(0);
+        setCustomData({});
 
         if (categories.length > 0) {
           setCategory(categories[0]);
@@ -211,6 +221,8 @@ export default function AddPage() {
           setName={setName}
           category={category}
           setCategory={setCategory}
+          costPrice={costPrice}
+          setCostPrice={setCostPrice}
           price={price}
           setPrice={setPrice}
           stock={stock}
@@ -219,6 +231,9 @@ export default function AddPage() {
           loadingCategories={
             loadingCategories
           }
+          customFields={customFields}
+          customData={customData}
+          setCustomData={setCustomData}
           addProductHandler={
             addProductHandler
           }

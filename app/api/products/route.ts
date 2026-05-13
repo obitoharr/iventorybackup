@@ -5,12 +5,12 @@ import { getServerTenantContext, jsonError, jsonSuccess } from "@/lib/api";
 const ProductCreateSchema = z.object({
   name: z.string().trim().min(1, "Product name is required"),
   category: z.string().trim().min(1, "Category is required"),
+  cost_price: z.number().nonnegative("Cost price cannot be negative"),
   price: z.number().nonnegative("Price must be 0 or greater"),
   stock: z
     .number()
     .int("Stock must be an integer")
     .nonnegative("Stock cannot be negative"),
-  notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
   custom_data: z.record(z.any()).optional(),
 });
 
@@ -77,16 +77,16 @@ export async function POST(req: Request) {
     return jsonError(parseResult.error.issues.map((issue) => issue.message).join(", "), 422);
   }
 
-  const { name, category, price, stock, notes, custom_data } = parseResult.data;
+  const { name, category, cost_price, price, stock, custom_data } = parseResult.data;
 
   const { data: insertedProduct, error: insertError } = await supabaseAdmin
     .from("products")
     .insert({
       name,
       category,
+      cost_price,
       price,
       stock,
-      notes,
       custom_data: custom_data || {},
       tenant_id: tenantContext.tenantId,
       user_id: tenantContext.userId,

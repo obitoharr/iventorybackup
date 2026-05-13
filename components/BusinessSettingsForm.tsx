@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiGet, apiPost } from "@/lib/apiClient";
 import { BusinessSettings } from "@/types";
@@ -23,19 +23,20 @@ export function BusinessSettingsForm({ onBusinessTypeChange }: BusinessSettingsF
   const [selectedType, setSelectedType] = useState("");
   const [description, setDescription] = useState("");
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading } = useQuery<BusinessSettings | undefined, Error>({
     queryKey: ["business_settings"],
     queryFn: async () => {
       const response = await apiGet<BusinessSettings>("/api/business-settings");
       return response.data;
     },
-    onSuccess: (data) => {
-      if (data) {
-        setSelectedType(data.business_type);
-        setDescription(data.description || "");
-      }
-    },
   });
+
+  useEffect(() => {
+    if (settings) {
+      setSelectedType(settings.business_type);
+      setDescription(settings.description || "");
+    }
+  }, [settings]);
 
   const saveMutation = useMutation({
     mutationFn: async (data: { business_type: string; description?: string }) => {

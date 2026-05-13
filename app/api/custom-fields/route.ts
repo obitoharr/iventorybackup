@@ -6,18 +6,56 @@ const CUSTOM_FIELDS_TABLE_NAME = "custom_fields";
 const SYSTEM_FIELDS = [
   { field_name: "name", display_name: "Name", field_type: "text" },
   { field_name: "category", display_name: "Category", field_type: "text" },
-  { field_name: "price", display_name: "Price", field_type: "currency" },
+  { field_name: "cost_price", display_name: "Cost Price", field_type: "currency" },
+  { field_name: "price", display_name: "Sell Price", field_type: "currency" },
   { field_name: "stock", display_name: "Stock", field_type: "number" },
-  { field_name: "notes", display_name: "Notes", field_type: "textarea" },
 ];
 
+function getErrorMessage(error: unknown) {
+  if (!error) {
+    return "";
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "object" && error !== null) {
+    if ("message" in error && typeof (error as any).message === "string") {
+      return (error as any).message;
+    }
+    if ("error" in error && typeof (error as any).error === "string") {
+      return (error as any).error;
+    }
+  }
+
+  return String(error);
+}
+
+function isMissingColumnError(error: unknown, columnName: string) {
+  const message = getErrorMessage(error).toLowerCase();
+  return (
+    message.includes(`column ${CUSTOM_FIELDS_TABLE_NAME}.${columnName} does not exist`) ||
+    message.includes(`column ${columnName} does not exist`) ||
+    message.includes(`column \"${columnName}\" does not exist`) ||
+    message.includes(`column ${columnName} does not exist on relation`) ||
+    message.includes(`column \"${CUSTOM_FIELDS_TABLE_NAME}\".${columnName} does not exist`)
+  );
+}
+
 function handleCustomFieldsSchemaError(error: unknown) {
-  if (
-    error instanceof Error &&
-    error.message.includes(`Could not find the table 'public.${CUSTOM_FIELDS_TABLE_NAME}'`)
-  ) {
+  const message = getErrorMessage(error);
+
+  if (message.includes(`Could not find the table 'public.${CUSTOM_FIELDS_TABLE_NAME}'`)) {
     return jsonError(
-      "Custom fields are not installed. Run the Supabase migration 20260507000010_add_custom_fields.sql and refresh the app.",
+      "Custom fields are not installed. Run the Supabase migrations 20260507000010_add_custom_fields.sql and 20260512000011_add_system_fields.sql, then refresh the app.",
+      500
+    );
+  }
+
+  if (isMissingColumnError(error, "is_system")) {
+    return jsonError(
+      "Custom field support is partially installed. Run the Supabase migration 20260512000011_add_system_fields.sql, then refresh the app.",
       500
     );
   }
@@ -33,6 +71,10 @@ async function initializeSystemFieldsForTenant(tenantId: string, userId: string)
     .eq("is_system", true);
 
   if (existingError) {
+    if (isMissingColumnError(existingError, "is_system")) {
+      console.warn("Skipping system field initialization because is_system column is missing.");
+      return;
+    }
     console.error("Error checking system fields:", existingError);
     return;
   }
@@ -200,7 +242,7 @@ export async function PATCH(req: Request) {
   // Verify field belongs to tenant
   const { data: field, error: fieldError } = await supabaseAdmin
     .from(CUSTOM_FIELDS_TABLE_NAME)
-    .select("tenant_id")
+    .select("tenant_id, is_system")
     .eq("id", id)
     .maybeSingle();
 
@@ -212,6 +254,17 @@ export async function PATCH(req: Request) {
 
   if (!field || field.tenant_id !== tenantContext.tenantId) {
     return jsonError("Custom field not found", 404);
+  }
+
+  if (field.is_system) {
+    const disallowedUpdates = ["field_name", "field_type", "is_required", "select_options", "default_value"];
+    const invalidKeys = Object.keys(updates).filter((key) => disallowedUpdates.includes(key));
+    if (invalidKeys.length > 0) {
+      return jsonError(
+        "Standard fields can only update display_name, is_visible, field_order, and description.",
+        400
+      );
+    }
   }
 
   const { data, error } = await supabaseAdmin
@@ -240,18 +293,21 @@ export async function DELETE(req: Request) {
     return jsonError("Only owners can delete custom fields", 403);
   }
 
-  let payload: unknown;
+  let payload: unknown = null;
   try {
     payload = await req.json();
   } catch {
-    return jsonError("Invalid JSON payload", 400);
+    payload = null;
   }
+
+  const queryId = new URL(req.url).searchParams.get("id");
+  const input = payload && typeof payload === "object" ? payload : queryId ? { id: queryId } : null;
 
   const schema = z.object({
     id: z.string().uuid(),
   });
 
-  const parseResult = schema.safeParse(payload);
+  const parseResult = schema.safeParse(input);
   if (!parseResult.success) {
     return jsonError(parseResult.error.issues.map((i) => i.message).join(", "), 422);
   }
@@ -259,37 +315,49 @@ export async function DELETE(req: Request) {
   const { id } = parseResult.data;
 
   // Verify field belongs to tenant and get full field info
-  const { data: field, error: fieldError } = await supabaseAdmin
-    .from(CUSTOM_FIELDS_TABLE_NAME)
-    .select("tenant_id, field_name, display_name, is_system")
-    .eq("id", id)
-    .maybeSingle();
+  let field: { tenant_id: string; field_name: string; display_name: string; is_system?: boolean } | null = null;
+  let fieldError: unknown = null;
+
+  try {
+    const result = await supabaseAdmin
+      .from(CUSTOM_FIELDS_TABLE_NAME)
+      .select("tenant_id, field_name, display_name, is_system")
+      .eq("id", id)
+      .maybeSingle();
+    field = result.data as any;
+    fieldError = result.error;
+  } catch (error) {
+    fieldError = error;
+  }
 
   if (fieldError) {
-    const tableError = handleCustomFieldsSchemaError(fieldError);
-    if (tableError) return tableError;
-    return jsonError(fieldError.message, 500);
+    if (isMissingColumnError(fieldError, "is_system")) {
+      const fallback = await supabaseAdmin
+        .from(CUSTOM_FIELDS_TABLE_NAME)
+        .select("tenant_id, field_name, display_name")
+        .eq("id", id)
+        .maybeSingle();
+
+      field = (fallback.data as any) ?? null;
+      fieldError = fallback.error;
+      if (fieldError) {
+        const tableError = handleCustomFieldsSchemaError(fieldError);
+        if (tableError) return tableError;
+        return jsonError(getErrorMessage(fieldError), 500);
+      }
+    } else {
+      const tableError = handleCustomFieldsSchemaError(fieldError);
+      if (tableError) return tableError;
+      return jsonError(getErrorMessage(fieldError), 500);
+    }
   }
 
   if (!field || field.tenant_id !== tenantContext.tenantId) {
     return jsonError("Custom field not found", 404);
   }
 
-  // Prevent deletion of system fields if they have data
   if (field.is_system) {
-    const { data: productsWithData, error: dataCheckError } = await supabaseAdmin
-      .from("products")
-      .select("id")
-      .eq("tenant_id", tenantContext.tenantId)
-      .not(`${field.field_name}`, "is", null)
-      .limit(1);
-
-    if (!dataCheckError && productsWithData && productsWithData.length > 0) {
-      return jsonError(
-        `Cannot delete standard column "${field.display_name}" because it contains data. You can only rename or hide it.`,
-        409
-      );
-    }
+    return jsonError("Cannot delete standard fields. Hide them instead.", 409);
   }
 
   const { error } = await supabaseAdmin

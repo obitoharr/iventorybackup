@@ -6,10 +6,11 @@ export const ProductSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
   category: z.string().min(1, 'Category is required'),
+  cost_price: z.number().nonnegative('Cost price cannot be negative'),
   price: z.number().positive('Price must be positive').max(999999, 'Price too high'),
   stock: z.number().int().min(0, 'Stock cannot be negative'),
   user_id: z.string().uuid().optional(),
-  notes: z.string().max(500, 'Notes too long').optional(),
+  custom_data: z.record(z.string(), z.any()).optional(),
 });
 
 export const SaleSchema = z.object({

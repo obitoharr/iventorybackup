@@ -21,7 +21,9 @@ export default function Dashboard() {
   };
 
   const total = products.length;
-  const value = products.reduce((a, p) => a + p.price * p.stock, 0);
+  const totalCost = products.reduce((a, p) => a + (p.cost_price ?? 0) * p.stock, 0);
+  const totalSellValue = products.reduce((a, p) => a + p.price * p.stock, 0);
+  const totalProfit = Math.max(0, totalSellValue - totalCost);
   const low = products.filter((p) => p.stock < 10 && p.stock > 0).length;
   const out = products.filter((p) => p.stock === 0).length;
   const categoryCount = new Set(products.map((p) => p.category)).size;
@@ -62,17 +64,17 @@ export default function Dashboard() {
         <div className="rounded-3xl bg-white/10 p-6 shadow-lg shadow-black/10">
           <h3 className="text-xl font-semibold mb-4">Cash Flow</h3>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-sm text-gray-400">Total Revenue</p>
-              <p className="text-2xl font-bold">${revenue}</p>
+                <div className="rounded-2xl bg-black/20 p-4">
+              <p className="text-sm text-gray-400">Total Cost Value</p>
+              <p className="text-2xl font-bold">${totalCost.toFixed(2)}</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-sm text-gray-400">Orders</p>
-              <p className="text-2xl font-bold">{orders}</p>
+              <p className="text-sm text-gray-400">Inventory Sell Value</p>
+              <p className="text-2xl font-bold">${totalSellValue.toFixed(2)}</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-4">
-              <p className="text-sm text-gray-400">Average Sale</p>
-              <p className="text-2xl font-bold">${averageSale}</p>
+              <p className="text-sm text-gray-400">Potential Profit</p>
+              <p className="text-2xl font-bold">${totalProfit.toFixed(2)}</p>
             </div>
             <div className="rounded-2xl bg-black/20 p-4">
               <p className="text-sm text-gray-400">Last Sale</p>
