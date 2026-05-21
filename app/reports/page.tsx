@@ -295,9 +295,9 @@ export default function ReportsPage() {
   // ================= AUTH LOADING =================
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+      <div className="min-h-screen flex items-center justify-center bg-theme-surface text-theme-primary">
         <div className="flex items-center gap-3">
-          <span className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+          <span className="h-5 w-5 rounded-full border-2 border-theme border-opacity-30 border-t-cyan-500 animate-spin" />
           <p>Checking authentication...</p>
         </div>
       </div>
@@ -318,7 +318,7 @@ export default function ReportsPage() {
               <div className="flex items-center gap-3 mb-3">
                 <Link
                   href="/"
-                  className="rounded-full bg-slate-900 px-3 py-1 text-sm text-cyan-400 hover:bg-slate-800 transition"
+                  className="rounded-full bg-theme-input border border-theme px-3 py-1 text-sm text-theme-primary hover:bg-theme-card transition"
                 >
                   ← Back to Dashboard
                 </Link>
@@ -328,7 +328,7 @@ export default function ReportsPage() {
                 Reports
               </h2>
 
-              <p className="text-slate-400 mt-2">
+              <p className="text-theme-secondary mt-2">
                 Latest sale: {latestSale}
               </p>
 
@@ -341,7 +341,7 @@ export default function ReportsPage() {
                   className={`px-3 py-1 rounded-lg text-sm transition ${
                     filter === "7d"
                       ? "bg-cyan-500 text-slate-950"
-                      : "bg-slate-800"
+                      : "bg-theme-input text-theme-secondary"
                   }`}
                 >
                   7D
@@ -354,7 +354,7 @@ export default function ReportsPage() {
                   className={`px-3 py-1 rounded-lg text-sm transition ${
                     filter === "30d"
                       ? "bg-cyan-500 text-slate-950"
-                      : "bg-slate-800"
+                      : "bg-theme-input text-theme-secondary"
                   }`}
                 >
                   30D
@@ -367,7 +367,7 @@ export default function ReportsPage() {
                   className={`px-3 py-1 rounded-lg text-sm transition ${
                     filter === "all"
                       ? "bg-cyan-500 text-slate-950"
-                      : "bg-slate-800"
+                      : "bg-theme-input text-theme-secondary"
                   }`}
                 >
                   ALL
@@ -394,14 +394,14 @@ export default function ReportsPage() {
 
           {/* LOADING */}
           {loadingSales && (
-            <div className="mb-6 rounded-2xl bg-slate-900 p-4 text-slate-300">
+            <div className="mb-6 rounded-2xl bg-theme-card p-4 text-theme-secondary">
               Loading sales report...
             </div>
           )}
 
           {/* STATS */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+            <div className="rounded-3xl bg-theme-card p-6 border border-theme flex gap-4">
               <DollarSign className="text-green-400" />
 
               <div>
@@ -413,7 +413,7 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+            <div className="rounded-3xl bg-theme-card p-6 border border-theme flex gap-4">
               <ShoppingBag className="text-blue-400" />
 
               <div>
@@ -425,7 +425,7 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+            <div className="rounded-3xl bg-theme-card p-6 border border-theme flex gap-4">
               <TrendingUp className="text-purple-400" />
 
               <div>
@@ -437,7 +437,7 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl bg-slate-900 p-6 border border-slate-800 flex gap-4">
+            <div className="rounded-3xl bg-theme-card p-6 border border-theme flex gap-4">
               <Star className="text-yellow-400" />
 
               <div>
@@ -451,7 +451,7 @@ export default function ReportsPage() {
           </div>
 
           {/* PER USER */}
-          <div className="bg-slate-900 p-6 rounded-2xl mb-6 border border-slate-800">
+          <div className="bg-theme-card p-6 rounded-2xl mb-6 border border-theme">
             <h3 className="mb-4 text-lg font-semibold">
               Revenue per User
             </h3>
@@ -460,7 +460,7 @@ export default function ReportsPage() {
               ([user, total], index) => (
                 <div
                   key={`${user}-${index}`}
-                  className="flex justify-between py-2 border-b border-slate-800"
+                  className="flex justify-between py-2 border-b border-theme"
                 >
                   <span className="truncate">
                     {user}
@@ -478,7 +478,7 @@ export default function ReportsPage() {
           </div>
 
           {/* PER PRODUCT */}
-          <div className="bg-slate-900 p-6 rounded-2xl mb-6 border border-slate-800">
+          <div className="bg-theme-card p-6 rounded-2xl mb-6 border border-theme">
             <h3 className="mb-4 text-lg font-semibold">
               Sales per Product
             </h3>
@@ -487,7 +487,7 @@ export default function ReportsPage() {
               ([product, qty], index) => (
                 <div
                   key={`${product}-${index}`}
-                  className="flex justify-between py-2 border-b border-slate-800"
+                  className="flex justify-between py-2 border-b border-theme"
                 >
                   <span>{product}</span>
 
@@ -498,13 +498,13 @@ export default function ReportsPage() {
           </div>
 
           {/* TABLE */}
-          <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 overflow-auto">
+          <div className="bg-theme-card p-6 rounded-2xl border border-theme overflow-auto">
             <h3 className="mb-4 text-lg font-semibold">
               Recent Sales
             </h3>
 
             <table className="w-full min-w-[700px] text-left">
-              <thead className="text-slate-400">
+              <thead className="text-theme-secondary">
                 <tr>
                   <th className="pb-3">
                     Product
@@ -530,7 +530,7 @@ export default function ReportsPage() {
                   <tr>
                     <td
                       colSpan={4}
-                      className="py-6 text-center text-slate-400"
+                      className="py-6 text-center text-theme-muted"
                     >
                       No sales recorded yet
                     </td>
@@ -546,7 +546,7 @@ export default function ReportsPage() {
                       return (
                         <tr
                           key={sale.id}
-                          className="border-t border-slate-800"
+                          className="border-t border-theme"
                         >
                           <td className="py-3">
                             {sale.productName ||
@@ -569,7 +569,7 @@ export default function ReportsPage() {
                             )}
                           </td>
 
-                          <td className="py-3 text-sm text-slate-300">
+                          <td className="py-3 text-sm text-theme-secondary">
                             {saleDate
                               ? saleDate.toLocaleString(
                                   "en-US",

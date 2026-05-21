@@ -10,17 +10,21 @@ type ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [dark, setDark] = useState(true);
+  const [dark, setDark] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Load theme from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('theme-preference');
-    if (saved) {
-      setDark(saved === 'dark');
-    }
+    setDark(saved === 'dark');
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('theme-dark', dark);
+    root.classList.toggle('theme-light', !dark);
+  }, [dark]);
 
   // Persist theme to localStorage
   const handleSetDark = (value: boolean) => {

@@ -53,7 +53,7 @@ export default function StatsCards({ products, visibleFieldNames }: { products: 
   }
 
   const Card = ({ title, value, icon }: any) => (
-    <div className="bg-slate-950/85 border border-slate-700/50 backdrop-blur-xl rounded-2xl p-5 shadow-card flex items-center gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl">
+    <div className="rounded-2xl border border-theme bg-theme-card backdrop-blur-xl p-5 shadow-card flex items-center gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl hover:bg-theme-surface">
       <div className="p-3 rounded-xl bg-cyan-500/15 text-cyan-300 flex items-center justify-center">
         {icon}
       </div>

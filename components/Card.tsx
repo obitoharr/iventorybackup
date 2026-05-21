@@ -22,7 +22,7 @@ export default function Card({
         rounded-2xl border border-theme bg-theme-card
         backdrop-blur-xl ${compact ? "p-3" : "p-6"} shadow-card
         transition-all duration-200
-        ${hover ? "hover:border-slate-600 hover:bg-slate-800/70" : ""}
+        ${hover ? "hover:border-theme hover:bg-theme-surface" : ""}
         ${interactive ? "cursor-pointer hover:shadow-2xl" : ""}
         ${className}
       `}

@@ -179,7 +179,7 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
   };
 
   if (isLoading) {
-    return <div className="p-4 text-center text-slate-400">Loading custom fields...</div>;
+    return <div className="p-4 text-center text-theme-secondary">Loading custom fields...</div>;
   }
 
   const systemFields = customFields
@@ -193,9 +193,9 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
 
   return (
     <div className="space-y-6">
-      <div className="border border-slate-700 rounded-lg p-4 bg-slate-900">
-        <h3 className="text-lg font-semibold text-white mb-4">Manage Custom Fields</h3>
-        <p className="text-slate-400 text-sm mb-6">
+      <div className="border border-theme rounded-lg p-4 bg-theme-card">
+        <h3 className="text-lg font-semibold text-theme-primary mb-4">Manage Custom Fields</h3>
+        <p className="text-theme-secondary text-sm mb-6">
           Create custom fields for your {businessType || "business"}. These fields will appear in your product table and forms.
         </p>
 
@@ -208,13 +208,13 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
         {/* Custom Fields Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-slate-800">
+            <thead className="bg-theme-surface">
               <tr>
-                <th className="p-3 text-left text-slate-300">Display Name</th>
-                <th className="p-3 text-left text-slate-300">Field Name</th>
-                <th className="p-3 text-left text-slate-300">Type</th>
-                <th className="p-3 text-center text-slate-300">Visible</th>
-                <th className="p-3 text-center text-slate-300">Actions</th>
+                <th className="p-3 text-left text-theme-secondary">Display Name</th>
+                <th className="p-3 text-left text-theme-secondary">Field Name</th>
+                <th className="p-3 text-left text-theme-secondary">Type</th>
+                <th className="p-3 text-center text-theme-secondary">Visible</th>
+                <th className="p-3 text-center text-theme-secondary">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -222,10 +222,10 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                 .slice()
                 .sort((a, b) => a.field_order - b.field_order)
                 .map((field) => (
-                  <tr key={field.id} className="border-t border-slate-700 hover:bg-slate-800/50">
-                    <td className="p-3 text-white font-medium">{field.display_name}</td>
-                    <td className="p-3 text-slate-400">{field.field_name}</td>
-                    <td className="p-3 text-slate-400">
+                  <tr key={field.id} className="border-t border-theme hover:bg-theme-surface">
+                    <td className="p-3 text-theme-primary font-medium">{field.display_name}</td>
+                    <td className="p-3 text-theme-secondary">{field.field_name}</td>
+                    <td className="p-3 text-theme-secondary">
                       {field.is_system ? `${field.field_type} (System)` : field.field_type}
                     </td>
                     <td className="p-3 text-center">
@@ -233,13 +233,13 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                         type="checkbox"
                         checked={field.is_visible}
                         onChange={(e) => updateVisibilityMutation.mutate({ id: field.id, is_visible: e.target.checked })}
-                        className="w-4 h-4 rounded border border-slate-600 bg-slate-700 cursor-pointer"
+                        className="w-4 h-4 rounded border border-theme bg-theme-input cursor-pointer"
                       />
                     </td>
                     <td className="p-3 text-center flex justify-center gap-2">
                       <button
                         onClick={() => handleEdit(field)}
-                        className="p-1 text-slate-400 hover:text-white transition"
+                        className="p-1 text-theme-secondary hover:text-theme-primary transition"
                         title="Edit"
                       >
                         <Edit2 size={16} />
@@ -261,20 +261,20 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
         </div>
 
         {customFields.length === 0 && (
-          <p className="text-slate-500 text-sm italic mt-4">No fields configured yet.</p>
+          <p className="text-theme-muted text-sm italic mt-4">No fields configured yet.</p>
         )}
 
         {/* Add/Edit Form */}
         {isAdding ? (
-          <div className="bg-slate-800 border border-slate-700 rounded p-4">
-            <h4 className="font-semibold text-white mb-4">
+          <div className="border border-theme rounded p-4 bg-theme-card">
+            <h4 className="font-semibold text-theme-primary mb-4">
               {editingId ? "Edit Field" : "Add New Field"}
             </h4>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-secondary mb-1">
                     Field Name (database) *
                   </label>
                   <input
@@ -287,14 +287,14 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                       })
                     }
                     placeholder="e.g., batch_number"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-theme-input border border-theme rounded px-3 py-2 text-theme-primary placeholder-theme-secondary focus:outline-none focus:border-cyan-500"
                     disabled={editingId ? true : false}
                   />
-                  <p className="text-xs text-slate-500 mt-1">Lowercase letters, numbers, underscores only</p>
+                  <p className="text-xs text-theme-muted mt-1">Lowercase letters, numbers, underscores only</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-secondary mb-1">
                     Display Name *
                   </label>
                   <input
@@ -302,20 +302,20 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                     value={formData.display_name || ""}
                     onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                     placeholder="e.g., Batch Number"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    className="w-full bg-theme-input border border-theme rounded px-3 py-2 text-theme-primary placeholder-theme-secondary focus:outline-none focus:border-cyan-500"
                   />
                 </div>
               </div>
 
               {formData.is_system && (
-                <div className="rounded-lg border border-slate-700 bg-slate-950 p-3 mb-4 text-xs text-slate-300">
+                <div className="rounded-lg border border-theme bg-theme-card p-3 mb-4 text-xs text-theme-secondary">
                   Standard fields can only change display name, visibility, and order.
                   Field type and internal field names are locked to avoid breaking the product schema.
                 </div>
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Field Type *</label>
+                  <label className="block text-sm font-medium text-theme-secondary mb-1">Field Type *</label>
                   <select
                     value={formData.field_type || "text"}
                     onChange={(e) =>
@@ -326,7 +326,7 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                       })
                     }
                     disabled={formData.is_system}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full bg-theme-input border border-theme rounded px-3 py-2 text-theme-primary focus:outline-none focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option value="text">Text</option>
                     <option value="number">Number</option>
@@ -339,22 +339,22 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Default Value</label>
+                  <label className="block text-sm font-medium text-theme-secondary mb-1">Default Value</label>
                   <input
                     type="text"
                     value={formData.default_value || ""}
                     onChange={(e) => setFormData({ ...formData, default_value: e.target.value })}
                     placeholder="Optional default value"
                     disabled={formData.is_system}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full bg-theme-input border border-theme rounded px-3 py-2 text-theme-primary placeholder-theme-secondary focus:outline-none focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </div>
               </div>
 
               {formData.field_type === "select" && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Select Options</label>
-                  <p className="text-xs text-slate-400 mb-2">Enter one option per line</p>
+                  <label className="block text-sm font-medium text-theme-secondary mb-1">Select Options</label>
+                  <p className="text-xs text-theme-secondary mb-2">Enter one option per line</p>
                   <textarea
                     value={(formData.select_options || []).join("\n")}
                     onChange={(e) =>
@@ -364,24 +364,24 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                       })
                     }
                     placeholder="Option 1&#10;Option 2&#10;Option 3"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 h-20 resize-none font-mono text-sm"
+                    className="w-full bg-theme-input border border-theme rounded px-3 py-2 text-theme-primary placeholder-theme-secondary focus:outline-none focus:border-cyan-500 h-20 resize-none font-mono text-sm"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Description</label>
+                <label className="block text-sm font-medium text-theme-secondary mb-1">Description</label>
                 <input
                   type="text"
                   value={formData.description || ""}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Optional description (shown as tooltip)"
-                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-theme-input border border-theme rounded px-3 py-2 text-theme-primary placeholder-theme-secondary focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
               <div className="flex gap-2">
-                <label className="flex items-center gap-2 text-sm text-slate-300">
+                <label className="flex items-center gap-2 text-sm text-theme-secondary">
                   <input
                     type="checkbox"
                     checked={formData.is_required || false}
@@ -391,7 +391,7 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                   />
                   Required Field
                 </label>
-                <label className="flex items-center gap-2 text-sm text-slate-300">
+                <label className="flex items-center gap-2 text-sm text-theme-secondary">
                   <input
                     type="checkbox"
                     checked={formData.is_visible ?? true}
@@ -421,7 +421,7 @@ export function CustomFieldsManager({ businessType }: CustomFieldsManagerProps) 
                     setIsAdding(false);
                     setEditingId(null);
                   }}
-                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 rounded transition"
+                  className="flex-1 bg-theme-surface hover:bg-theme-card text-theme-primary font-medium py-2 rounded transition"
                 >
                   Cancel
                 </button>

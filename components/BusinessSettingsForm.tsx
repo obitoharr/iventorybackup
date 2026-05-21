@@ -63,14 +63,14 @@ export function BusinessSettingsForm({ onBusinessTypeChange }: BusinessSettingsF
   };
 
   if (isLoading) {
-    return <div className="text-center text-slate-400">Loading business settings...</div>;
+    return <div className="text-center text-theme-secondary">Loading business settings...</div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="border border-slate-700 rounded-lg p-4 bg-slate-900">
-        <h3 className="text-lg font-semibold text-white mb-4">Business Type</h3>
-        <p className="text-slate-400 text-sm mb-6">
+      <div className="border border-theme rounded-lg p-4 bg-theme-card">
+        <h3 className="text-lg font-semibold text-theme-primary mb-4">Business Type</h3>
+        <p className="text-theme-secondary text-sm mb-6">
           Select your business type. This helps us provide relevant features and customization options.
         </p>
 
@@ -82,25 +82,25 @@ export function BusinessSettingsForm({ onBusinessTypeChange }: BusinessSettingsF
               className={`p-4 rounded border-2 transition text-left ${
                 selectedType === type.value
                   ? "border-blue-500 bg-blue-500/10"
-                  : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                  : "border-theme bg-theme-input hover:border-cyan-400"
               }`}
             >
-              <p className="font-semibold text-white">{type.label}</p>
-              <p className="text-sm text-slate-400">{type.description}</p>
+              <p className="font-semibold text-theme-primary">{type.label}</p>
+              <p className="text-sm text-theme-secondary">{type.description}</p>
             </button>
           ))}
         </div>
 
         {selectedType === "custom" && (
           <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-theme-secondary mb-2">
               Describe Your Business
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Tell us about your business..."
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 h-20 resize-none"
+              className="w-full bg-theme-input border border-theme rounded px-3 py-2 text-theme-primary placeholder-theme-secondary focus:outline-none focus:border-cyan-500 h-20 resize-none"
             />
           </div>
         )}
@@ -108,7 +108,7 @@ export function BusinessSettingsForm({ onBusinessTypeChange }: BusinessSettingsF
         <button
           onClick={handleSave}
           disabled={saveMutation.isPending || !selectedType}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium py-2 rounded transition"
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-theme-surface text-white font-medium py-2 rounded transition"
         >
           {saveMutation.isPending ? "Saving..." : "Save Business Type"}
         </button>

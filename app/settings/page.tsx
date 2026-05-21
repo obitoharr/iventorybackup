@@ -234,7 +234,7 @@ export default function SettingsPage() {
                   onClick={() => setActiveSection(tab.id as "owner" | "system" | "subuser" | "business" | "customfields" | "standardfields")}
                   className={`group flex items-center gap-3 rounded-3xl border px-4 py-4 text-left text-sm font-semibold transition ${selected ? "border-transparent bg-cyan-500 text-slate-950 shadow-[0_10px_30px_-18px_rgba(6,182,212,0.8)]" : "border-theme bg-theme-card text-theme-secondary hover:border-white/30 hover:bg-theme-surface"}`}
                 >
-                  <span className={`grid h-11 w-11 place-items-center rounded-2xl border ${selected ? "border-transparent bg-slate-950 text-white" : "border-white/10 bg-theme-input text-cyan-300"}`}>
+                  <span className={`grid h-11 w-11 place-items-center rounded-2xl border ${selected ? "border-transparent bg-cyan-500 text-slate-950" : "border-white/10 bg-theme-input text-cyan-300"}`}>
                     <Icon size={18} />
                   </span>
                   <span>{tab.label}</span>

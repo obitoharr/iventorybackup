@@ -17,7 +17,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary: "bg-cyan-500 hover:bg-cyan-600 text-white shadow-sm shadow-cyan-500/20",
   secondary: "bg-slate-700 hover:bg-slate-600 text-white shadow-sm shadow-slate-900/15",
   danger: "bg-red-600 hover:bg-red-700 text-white shadow-sm shadow-red-500/20",
-  ghost: "bg-transparent hover:bg-white/10 text-slate-300 border border-slate-600/50",
+  ghost: "bg-transparent hover:bg-theme-surface text-theme-secondary border border-theme",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

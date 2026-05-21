@@ -68,24 +68,24 @@ export default function Dashboard() {
           <h3 className="text-xl font-semibold mb-4">Cash Flow</h3>
           <div className="grid gap-3 sm:grid-cols-2">
             {costPriceVisible && (
-              <div className="rounded-2xl border border-slate-700/50 bg-slate-950/60 p-4">
+              <div className="rounded-2xl border border-theme bg-theme-card p-4">
                 <p className="text-sm text-theme-secondary">Total Cost Value</p>
                 <p className="text-2xl font-bold">${totalCost.toFixed(2)}</p>
               </div>
             )}
             {priceVisible && (
-              <div className="rounded-2xl border border-slate-700/50 bg-slate-950/60 p-4">
+              <div className="rounded-2xl border border-theme bg-theme-card p-4">
                 <p className="text-sm text-theme-secondary">Inventory Sell Value</p>
                 <p className="text-2xl font-bold">${totalSellValue.toFixed(2)}</p>
               </div>
             )}
             {profitVisible && (
-              <div className="rounded-2xl border border-slate-700/50 bg-slate-950/60 p-4">
+              <div className="rounded-2xl border border-theme bg-theme-card p-4">
                 <p className="text-sm text-theme-secondary">Potential Profit</p>
                 <p className="text-2xl font-bold">${totalProfit.toFixed(2)}</p>
               </div>
             )}
-            <div className="rounded-2xl border border-slate-700/50 bg-slate-950/60 p-4">
+            <div className="rounded-2xl border border-theme bg-theme-card p-4">
               <p className="text-sm text-theme-secondary">Last Sale</p>
               <p className="text-2xl font-bold">{lastSaleDate}</p>
             </div>
@@ -101,7 +101,7 @@ export default function Dashboard() {
               {sales.slice(0, 5).map((sale) => {
                 const saleDate = getSaleDate(sale);
                 return (
-                  <div key={sale.id} className="rounded-2xl border border-slate-700/50 bg-slate-950/60 p-4">
+                  <div key={sale.id} className="rounded-2xl border border-theme bg-theme-card p-4">
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <p className="font-semibold">{getProductName(sale)}</p>

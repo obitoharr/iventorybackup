@@ -66,12 +66,12 @@ export function StandardFieldManager({ businessType }: StandardFieldManagerProps
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-slate-700 bg-slate-950 p-4">
-        <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-400 mb-3">
+      <div className="rounded-lg border border-theme bg-theme-card p-4">
+        <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-theme-secondary mb-3">
           Standard Product Fields
         </h4>
 
-        <p className="text-slate-400 text-sm mb-4">
+        <p className="text-theme-secondary text-sm mb-4">
           Toggle standard fields on or off for inventory use. Required fields are always enabled and remain visible.
         </p>
 
@@ -83,21 +83,21 @@ export function StandardFieldManager({ businessType }: StandardFieldManagerProps
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-slate-800">
+            <thead className="bg-theme-surface">
               <tr>
-                <th className="p-3 text-left text-slate-300">Display Name</th>
-                <th className="p-3 text-left text-slate-300">Field Name</th>
-                <th className="p-3 text-left text-slate-300">Type</th>
-                <th className="p-3 text-center text-slate-300">Use</th>
-                <th className="p-3 text-center text-slate-300">Actions</th>
+                <th className="p-3 text-left text-theme-secondary">Display Name</th>
+                <th className="p-3 text-left text-theme-secondary">Field Name</th>
+                <th className="p-3 text-left text-theme-secondary">Type</th>
+                <th className="p-3 text-center text-theme-secondary">Use</th>
+                <th className="p-3 text-center text-theme-secondary">Actions</th>
               </tr>
             </thead>
             <tbody>
               {systemFields.map((field) => (
-                <tr key={field.id} className="border-t border-slate-700 hover:bg-slate-800/50">
-                  <td className="p-3 text-white font-medium">{field.display_name}</td>
-                  <td className="p-3 text-slate-400">{field.field_name}</td>
-                  <td className="p-3 text-slate-400">{field.field_type}</td>
+                <tr key={field.id} className="border-t border-theme hover:bg-theme-surface">
+                  <td className="p-3 text-theme-primary font-medium">{field.display_name}</td>
+                  <td className="p-3 text-theme-secondary">{field.field_name}</td>
+                  <td className="p-3 text-theme-secondary">{field.field_type}</td>
                   <td className="p-3 text-center">
                     {(() => {
                       const isAlwaysVisible = alwaysShowSystemFields.includes(field.field_name);
@@ -110,18 +110,18 @@ export function StandardFieldManager({ businessType }: StandardFieldManagerProps
                             checked={field.is_visible || disabled}
                             disabled={disabled}
                             onChange={(e) => !disabled && updateVisibilityMutation.mutate({ id: field.id, is_visible: e.target.checked })}
-                            className="w-4 h-4 rounded border border-slate-600 bg-slate-700 cursor-pointer disabled:cursor-not-allowed"
+                            className="w-4 h-4 rounded border border-theme bg-theme-input cursor-pointer disabled:cursor-not-allowed"
                           />
                           {isAlwaysVisible ? (
-                            <span className="text-xs text-slate-400">Always visible</span>
+                            <span className="text-xs text-theme-secondary">Always visible</span>
                           ) : isRequired ? (
-                            <span className="text-xs text-slate-400">Required</span>
+                            <span className="text-xs text-theme-secondary">Required</span>
                           ) : null}
                         </label>
                       );
                     })()}
                   </td>
-                  <td className="p-3 text-center text-slate-400">Visibility only</td>
+                  <td className="p-3 text-center text-theme-secondary">Visibility only</td>
                 </tr>
               ))}
             </tbody>
@@ -129,7 +129,7 @@ export function StandardFieldManager({ businessType }: StandardFieldManagerProps
         </div>
 
         {systemFields.length === 0 && (
-          <p className="text-slate-500 text-sm italic mt-4">No standard fields configured yet.</p>
+          <p className="text-theme-muted text-sm italic mt-4">No standard fields configured yet.</p>
         )}
       </div>
     </div>

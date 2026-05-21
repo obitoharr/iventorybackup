@@ -189,7 +189,7 @@ export default function SalesPage() {
         <div className="mb-6 flex flex-col gap-4">
           <Link
             href="/"
-            className="inline-flex w-fit items-center rounded-full bg-slate-900 px-4 py-2 text-sm text-cyan-400 hover:bg-slate-800 transition"
+            className="inline-flex w-fit items-center rounded-full bg-theme-input border border-theme px-4 py-2 text-sm text-theme-primary hover:bg-theme-card transition"
           >
             ← Back to Dashboard
           </Link>
@@ -270,7 +270,7 @@ export default function SalesPage() {
                     className="p-8 text-center text-theme-secondary"
                   >
                     <div className="inline-flex items-center gap-2">
-                      <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      <span className="h-4 w-4 rounded-full border-2 border-theme border-opacity-30 border-t-cyan-500 animate-spin" />
                       Fetching sales...
                     </div>
                   </td>

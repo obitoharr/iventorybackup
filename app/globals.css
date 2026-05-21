@@ -68,6 +68,7 @@
 .text-theme-muted { color: var(--text-muted); }
 .text-theme-accent { color: var(--color-accent-primary); }
 .bg-theme-accent { background: var(--color-accent-primary); }
+.placeholder-theme-secondary::placeholder { color: var(--text-secondary); }
 
 @theme inline {
   --color-background: var(--background);
